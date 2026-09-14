@@ -8,12 +8,12 @@ The UI supports English and Simplified Chinese. It follows the system language o
 | --- | --- | --- |
 | Windows 10 / 11, x64 | Blocklink.exe in ZIP | Built locally; needs WebView2 |
 | macOS 11+, Apple Silicon | Blocklink.app in ZIP; DMG | Native build and service tests passed; game verification pending |
-| macOS 11+, Intel | Blocklink.app in ZIP; DMG | Workflow ready; native build and game verification pending |
+| macOS 11+, Intel | Blocklink.app in ZIP; DMG | Native build and service tests passed; game verification pending |
 | Linux x64, Ubuntu 22.04+ baseline | AppImage; DEB | Native build and service tests passed; game verification pending |
 
-Linux x64 and Apple Silicon Mac preview packages are available on GitHub Releases after successful native builds and service tests. Intel Mac build progress is available in Actions. A service test does not replace verifying Minecraft windows, sound, input, shaders, file pickers and credential storage on each OS. Preview builds are unsigned. macOS signing and notarization are not configured.
+Windows x64, Linux x64, Apple Silicon and Intel Mac all passed native builds and service tests. Preview packages are available on GitHub Releases. A service test does not replace verifying Minecraft windows, sound, input, shaders, file pickers and credential storage on each OS. Preview builds are unsigned. macOS signing and notarization are not configured.
 
-Linux x64 和 Apple Silicon Mac 已提供通过原生构建和后台启动测试的预览包。Intel Mac 构建进度请查看 Actions。自动测试之外，还需验证各系统的游戏窗口、声音、输入、光影、文件选择和凭据库。测试版未签名，macOS 签名与公证尚未配置。
+Windows x64、Linux x64、Apple Silicon 和 Intel Mac 均已通过原生构建和后台启动测试，并提供预览包。自动测试之外，还需验证各系统的游戏窗口、声音、输入、光影、文件选择和凭据库。测试版未签名，macOS 签名与公证尚未配置。
 
 ## Platform behavior
 
