@@ -32,7 +32,7 @@ jobs:
           BLOCKLINK_TEST_INVITATION: ${{ inputs.invitation }}
         run: |
           echo "::add-mask::$BLOCKLINK_TEST_INVITATION"
-          binary=$(find packages -name '*.AppImage' -type f)
+          binary=$(find packages -name 'Blocklink-update-Linux-x64.AppImage' -type f)
           chmod +x "$binary"
           xvfb-run -a dbus-run-session -- python scripts/cloud-desktop-smoke.py "$binary" --join --report cloud-checks/multiplayer.json
       - uses: actions/upload-artifact@v4
