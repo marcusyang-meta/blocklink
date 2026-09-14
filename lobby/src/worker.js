@@ -21,6 +21,7 @@ export default {
   async fetch(request, env) {
     try {
       const url = new URL(request.url);
+      if (url.pathname==='/updates/latest.json' && request.method==='GET') return latestUpdate(request,env);
       if (url.pathname === '/health') return json({service: 'blocklink-lobby', version: 1, turnConfigured: !!(env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN)});
       if ((request.method === 'GET' || request.method === 'HEAD') && (['/', '/privacy', '/en', '/en/', '/en/privacy', '/updates/latest.json'].includes(url.pathname) || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/downloads/'))) {
         if (!env.ASSETS) return json({error: '页面暂不可用'}, 503);
@@ -47,6 +48,27 @@ export default {
     } catch { return json({error: '请求无效'}, 400); }
   }
 };
+
+export async function latestUpdate(request,env,remote=fetch) {
+  const cache=typeof caches==='undefined'?null:caches.default;
+  const key=new Request('https://blocklink.jyang.dev/updates/latest.json');
+  const hit=await cache?.match(key);if(hit)return hit;
+  try {
+    if(env.LOCAL_TEST!=='true') {
+      const listing=await remote('https://api.github.com/repos/marcusyang-meta/blocklink/releases?per_page=10',{headers:{'User-Agent':'Blocklink-updates','Accept':'application/vnd.github+json'},signal:AbortSignal.timeout(10000)});
+      if(listing.ok) for(const release of await listing.json()) {
+        if(release.draft)continue;
+        const asset=release.assets?.find(a=>a.name==='latest.json');
+        if(!asset?.browser_download_url?.startsWith('https://github.com/marcusyang-meta/blocklink/releases/download/'))continue;
+        const result=await remote(asset.browser_download_url,{signal:AbortSignal.timeout(10000)});if(!result.ok)continue;
+        const feed=await result.json();
+        if(typeof feed.version!=='string'||!['windows-x86_64','darwin-aarch64','darwin-x86_64','linux-x86_64'].every(p=>typeof feed.platforms?.[p]?.signature==='string'&&feed.platforms[p].url?.startsWith('https://github.com/marcusyang-meta/blocklink/releases/download/')))continue;
+        const response=Response.json(feed,{headers:{'Cache-Control':'public, max-age=300'}});await cache?.put(key,response.clone());return response;
+      }
+    }
+  }catch{/* Keep the last deployed feed available during GitHub outages or rate limiting. */}
+  const asset=await env.ASSETS.fetch(request);const response=new Response(asset.body,asset);response.headers.set('Cache-Control','public, max-age=300');return response;
+}
 
 export class Room {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }

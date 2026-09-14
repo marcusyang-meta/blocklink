@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import worker from '../src/worker.js';
+import worker,{latestUpdate} from '../src/worker.js';
 test('product assets are separate from invitation and private room routes',async()=>{
  const seen=[];const env={ASSETS:{fetch:async request=>{seen.push(new URL(request.url).pathname);return new Response('asset',{headers:{'Content-Type':'text/html'}})}}};
  for(const [path,target] of [['/','/'],['/privacy','/privacy'],['/en','/en'],['/en/','/en/'],['/en/privacy','/en/privacy'],['/assets/language.js','/assets/language.js'],['/assets/site.css','/assets/site.css'],['/downloads/Blocklink.exe','/downloads/Blocklink.exe']]){
@@ -11,8 +11,14 @@ test('product assets are separate from invitation and private room routes',async
  const privateRoute=await worker.fetch(new Request('https://example.test/api/rooms',{method:'POST',body:'{}'}),env);assert.equal(privateRoute.status,401);assert.equal(seen.length,before);
 });
 test('updater feed is public and briefly cached without exposing other update paths',async()=>{
- const env={ASSETS:{fetch:async()=>Response.json({version:'0.1.1',platforms:{}})}};
+ const env={LOCAL_TEST:'true',ASSETS:{fetch:async()=>Response.json({version:'0.1.1',platforms:{}})}};
  const response=await worker.fetch(new Request('https://example.test/updates/latest.json'),env);
  assert.equal(response.status,200);assert.equal((await response.json()).version,'0.1.1');assert.equal(response.headers.get('Cache-Control'),'public, max-age=300');
  assert.equal((await worker.fetch(new Request('https://example.test/updates/private.key'),env)).status,404);
+});
+test('completed release feeds are selected automatically and incomplete releases are skipped',async()=>{
+ const url='https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/latest.json';
+ const feed={version:'0.1.2',platforms:Object.fromEntries(['windows-x86_64','darwin-aarch64','darwin-x86_64','linux-x86_64'].map(p=>[p,{url:url.replace('latest.json',p),signature:'signed'}]))};
+ let calls=0;const remote=async()=>++calls===1?Response.json([{draft:false,assets:[]},{draft:false,assets:[{name:'latest.json',browser_download_url:url}]}]):Response.json(feed);
+ const response=await latestUpdate(new Request('https://example.test/updates/latest.json'),{},remote);assert.deepEqual(await response.json(),feed);assert.equal(calls,2);
 });

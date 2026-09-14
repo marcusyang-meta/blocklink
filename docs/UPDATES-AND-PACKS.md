@@ -20,6 +20,8 @@ Cloudflare lobby invitations and local server bindings synchronize the bundle be
 
 GitHub Actions signs platform payloads using the encrypted `TAURI_SIGNING_PRIVATE_KEY` repository secret. Never commit the private key. The build workflow also produces ordinary downloadable packages when signing credentials are unavailable, but these cannot be advertised as automatic updates.
 
-After all four native builds pass, the release workflow attaches signed payloads and assembles `latest.json`. Copy the reviewed release's `latest.json` to `lobby/public/updates/latest.json` and deploy the website to advertise that release. Publish the feed only after every referenced release asset is available. Increase the application version for each update; the feed uses the version in the Tauri configuration.
+After all four native builds pass, run the existing manually triggered release workflow to attach packages and publish `latest.json`. The website automatically discovers complete release feeds from the public repository and caches them for five minutes. Incomplete releases are skipped. Increase the application version for each update; metadata records the version used for each build. No manual website deployment is needed to advertise subsequent complete releases. Releases are not published automatically on push.
+
+`lobby/public/updates/latest.json` is the fallback feed during GitHub outages or rate limiting. Refresh it periodically from a verified complete release. Existing release assets are preserved; the publication workflow reads the actual published signature when a locally built Windows payload was uploaded before CI completed.
 
 Validation includes modpack export/reimport, private-file exclusions, existing-file preservation, configuration update/removal/conflict handling, interrupted directory recovery, and a local Cloudflare-compatible lobby test that transfers both mods and configuration over real WebRTC connections.
