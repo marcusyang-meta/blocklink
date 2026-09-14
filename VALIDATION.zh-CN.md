@@ -1,4 +1,4 @@
-# Validation
+# Validation / 验收状态
 
 ## 2026-09-13 local Windows preview
 
@@ -13,12 +13,10 @@
 
 Windows x64, Linux x64, Apple Silicon and Intel Mac passed the native GitHub Actions build, Rust and translation tests, desktop service startup and authenticated RPC checks. The corresponding ZIP, DMG, AppImage and DEB release assets have verified SHA-256 checksums. [Build evidence](https://github.com/marcusyang-meta/blocklink/actions/runs/34802210184).
 
-## Not yet verified
+## Not yet verified / 尚未验收
 
 - Actual Minecraft windows, graphics, audio, input, file dialogs and credential storage still need platform-specific verification on Mac/Linux.
 - Microsoft device authorization is implemented, but Minecraft API access has not been approved. A 403 at the Minecraft endpoint is not proof of every possible underlying cause; do not claim successful authenticated game login.
 - No CurseForge online integration. Unsupported package formats are rejected rather than presented as installed.
 
 Tests do not replace preserving important worlds. Use isolated test data when validating deletion, migration and recovery.
-
-[Chinese version](VALIDATION.zh-CN.md)

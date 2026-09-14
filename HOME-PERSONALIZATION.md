@@ -1,12 +1,12 @@
-# 个人游戏首页
+# Personal game home
 
-- 默认选择最近玩过的客户端实例；依据本机成功创建游戏进程的时间和存档 `LastPlayed` 时间排序。手动切换实例后不会被后台刷新抢回。
-- 游戏进程成功创建后记录 `last-played.json`。只点登录、取消启动或准备失败不会记录。启动进程不代表已经成功进入世界，因此该时间标注为“上次启动”。
-- 最近世界的名称和“上次游玩”来自实际 Java 存档；封面来自该世界的 `icon.png`。没有世界时不编造信息。
-- 首页固定使用内置场景背景，不再自动放大游戏截图。个人存档图片仅用于实例小封面，最近世界和游玩时间仍保留。
-- 本地截图读取接口保留，但首页不再调用。存档封面只在本机显示，不会自动上传或共享。
-- 首页每 15 秒更新可选信息。开始游戏仍进入游戏本身，不会自动打开或改写世界。
+- The default client instance is selected using local successful process-start timestamps and world LastPlayed values. Manual selection is preserved during background refreshes.
+- last-played.json is written only after the game process starts. Login alone, cancellation and failed preparation do not count. A process start does not prove entry into a world, so this is labeled Last launched.
+- Recent world names and play times come from actual Java saves; covers come from each world's icon.png. Missing worlds do not produce invented activity.
+- The home screen uses a bundled scene background. Personal world pictures are used only as small covers, remain local, and are not automatically uploaded or shared. The local screenshot API remains available but is not used by the home screen.
+- Optional information refreshes every 15 seconds. Play starts the game without automatically opening or rewriting a world. Recent activity is local, not a cloud activity feed or friends' online status.
 
-验证：25 个服务单元测试通过，7 个原有实机测试忽略；包含历史记录重启后保留、图片大小/尺寸限制、越界路径拒绝和无图回退。TypeScript / Vite 构建通过。隔离实例中验证真实世界名称、NBT 游玩时间及 64×64 存档封面；用临时 PNG 验证大图背景（约 2.2 MB）后删除测试文件。在 920×587 窗口下开始按钮完整可见、页面无横向溢出。未启动或修改用户的实际存档。
+Historical checks: 25 service tests passed, with seven existing external integration tests skipped. Checks included persistent history, image size limits, path boundaries and missing-image fallbacks. TypeScript and Vite passed. Isolated worlds verified NBT timestamps and 64-by-64 covers; the Play button remained visible at 920-by-587 without horizontal overflow. User worlds were not launched or modified.
 
-默认选择是最近使用顺序，不是云端活动，也不显示朋友在线状态。
+
+[Chinese version](HOME-PERSONALIZATION.zh-CN.md)

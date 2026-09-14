@@ -2,9 +2,11 @@
 
 **More time for adventure.** A lightweight Minecraft Java Edition launcher built with Tauri, Rust and React. No Electron or Node runtime is required to use it.
 
-[简体中文](README.md) · [Website](https://blocklink-lobby.junjie-f33.workers.dev/en/) · [Downloads](https://blocklink-lobby.junjie-f33.workers.dev/en/#download) · [Report a problem](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
+[简体中文](README.zh-CN.md) · [Website](https://blocklink-lobby.junjie-f33.workers.dev/en/) · [Downloads](https://blocklink-lobby.junjie-f33.workers.dev/en/#download) · [Report a problem](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
 
 ![Blocklink game library](lobby/public/assets/launcher.png)
+
+*Screenshot shows the Chinese interface; English is available in Launcher settings.*
 
 ## Play your way
 
@@ -18,9 +20,9 @@
 
 ## Download and start
 
-Get the [Windows portable preview](https://blocklink-lobby.junjie-f33.workers.dev/en/#download), extract the ZIP and open Blocklink.exe. It needs Windows 10/11 x64 and WebView2. Choose a player, add a game or modpack, then press Play. Java and game files are downloaded as needed. Keep independent backups of important worlds.
+Download a native preview for your OS from [GitHub Releases](https://github.com/marcusyang-meta/blocklink/releases). On Windows, extract the ZIP and open Blocklink.exe. It needs Windows 10/11 x64 and WebView2. Choose a player, add a game or modpack, then press Play. Java and game files are downloaded as needed. Keep independent backups of important worlds.
 
-The current local-player mode does not authenticate to online-mode servers. Microsoft account integration is implemented but Minecraft API access has not been approved. Do not assume Microsoft sign-in is working in this preview.
+The current local-player mode does not authenticate to online-mode servers. Microsoft account integration is implemented but Minecraft API access has not been approved. Do not assume Microsoft sign-in is working in this preview. CurseForge online downloads are not integrated.
 
 ## Platform status
 

@@ -1,43 +1,39 @@
-# 当前联机方案：Cloudflare 大厅
+# Multiplayer through the Cloudflare lobby
 
-新版本从「邀请朋友」创建 Cloudflare 房间。房主与朋友通过公网 Worker 找到彼此，交换 WebRTC 连接信息，再直连或通过 Cloudflare TURN 中继。具体设置与部署见 [lobby/README.md](lobby/README.md)（便携包内为 LOBBY.md）。
+New invitations create Cloudflare rooms. Hosts and friends discover each other through a public Worker, exchange WebRTC connection information, and connect directly or through Cloudflare TURN. See [lobby deployment](lobby/README.md), included as LOBBY.md in applicable portable distributions.
 
-大厅服务与游戏服务器分开：前者部署到 Cloudflare，后者运行在房主电脑。邀请是包含短期房间访问凭据的 HTTPS 链接，默认 12 小时有效。关闭房间会撤销邀请并断开联机。新的模式不会连接 Iroh 公共中继。
+The lobby and game server are separate: Cloudflare runs discovery and connection services, while the host's computer runs Minecraft. An HTTPS invitation carries short-lived room access credentials, with a default lifetime of 12 hours. Closing the room revokes the invitation and disconnects participants. New rooms do not use Iroh's public relays.
 
-以下是旧版 Iroh 邀请协议的兼容记录；界面已不再用它生成新邀请，但旧邀请仍可导入。
+## Legacy Iroh invitation compatibility
 
-# 旧版 Iroh 自动联机
+The UI no longer creates legacy Iroh invitations, but existing invitations remain importable. The original flow published a server's mod environment and created an invitation; a friend imported it, created an instance and selected synchronization and joining. Its original automatic setup supported Java, Minecraft and Fabric.
 
-双方都使用 Blocklink。服主在托管服务器页面发布 Mod 环境、启动服务器，然后选择「邀请朋友 → 自动联机 → 开启联机并生成邀请」。朋友选择「导入联机邀请」，粘贴邀请；创建实例后点击「同步并加入」。首次启动会自动安装所需 Java、游戏和 Fabric。
+The Rust backend embeds Iroh 1.2 and encrypted QUIC streams. It establishes a reachable path, attempts NAT traversal and switches to direct connectivity when possible, otherwise using an Iroh Relay. No system virtual adapter, separate VPN or manual port forwarding is required. Automatic router mapping through portmapper is not enabled.
 
-## 连接方式
+Minecraft connects to a random loopback TCP port on the player's computer. Blocklink forwards it to the hosted game's port over the encrypted connection. The same protocol transfers the published mod manifest and missing SHA-512 objects, without exposing the HTTPS synchronization port publicly. It permits only the selected server's game port and published client mods, not arbitrary host/port forwarding.
 
-Rust 后台内置 Iroh 1.2，使用 QUIC 加密流。先通过可达路径建立连接，再自动尝试 NAT 打洞、切换为直接连接；无法直连时通过 Iroh Relay 中继。无需系统虚拟网卡、独立 VPN 或手动端口映射。该构建未启用自动修改路由器映射的 portmapper 功能。
+Legacy invitations use the public Iroh relay by default, without a Blocklink-operated relay or bandwidth guarantee. Relays see connection metadata such as endpoints and IP addresses, while game and file content remains end-to-end encrypted. Content is not uploaded to persistent cloud storage. Long-running deployments need their own assessment of network quality and relay availability.
 
-Minecraft 连接玩家机器上的随机回环 TCP 端口；Blocklink 将数据流通过加密连接送到服主的本机游戏端口。Mod 清单与缺失的 SHA-512 文件使用同一套联机协议，不再需要把 HTTPS 同步端口映射到公网。协议不提供任意主机/端口转发，只允许访问指定托管实例的游戏端口与已发布客户端 Mod。
+### Invitations and revocation
 
-默认使用 Iroh 公共中继，没有 Blocklink 自营中继或带宽承诺。中继可看到端点/IP 等连接信息，但游戏及文件内容端到端加密。数据不会上传到持久化云仓库。适合个人测试；长期运行应评估所在地的连接质量、自建中继或签约服务。
+Invitations pin the host's public key and carry a separate server-access token. Share them only with intended players. Revocation rejects future synchronization and connections and terminates existing connections using the old token in approximately one second. It cannot recall already downloaded files. Regenerated invitations must be imported again; significant address or relay changes can also require regeneration.
 
-## 邀请与撤销
+Host identity persists in the local data directory. Only hosts that previously generated an invitation restore a network endpoint automatically. Ordinary unpaired instances do not initialize multiplayer networking for offline launch. Exiting the game cleans up its local forwarding listener.
 
-邀请固定服主公钥，并携带独立的服务器访问令牌。只应分享给信任的玩家。撤销会拒绝后续同步和游戏连接，并在约一秒内终止使用旧令牌的已有连接；它不会收回朋友已经下载的 Mod 文件。重新生成后需重新导入新邀请。修改中继或网络地址发生重大变化时，也可能需要重新生成邀请。
+### Self-hosted legacy relays
 
-主机身份保存于本机数据目录；程序重启后继续使用同一个身份。只有生成过联机邀请的服主后台会自动恢复联机端点。普通未配对实例不会为了离线启动而初始化联机网络。游戏退出后会清理本地游戏转发入口。
+A compatible relay needs a public address, domain and valid TLS certificate. Stop the legacy networking endpoint before changing its relay HTTPS URL, then regenerate invitations. Relays requiring dedicated client authentication tokens are not integrated. Blocklink does not automatically buy or deploy a cloud server. See [Iroh relay documentation](https://docs.iroh.computer/add-a-relay) for the deployed version.
 
-## 自建中继
+### Recorded checks and limits
 
-在具有公网地址、域名和有效 TLS 证书的服务器部署兼容 Iroh Relay。在「邀请朋友 → 自建中继与网络设置」先关闭联机网络，再填写中继 HTTPS 地址并保存。需要重新生成邀请。当前配置支持不要求客户端认证令牌的 Relay；需要专属鉴权令牌的商业托管 Relay 尚未接入。
+- Two isolated Windows backends passed encrypted mod transfer, bidirectional TCP forwarding, malformed-invitation rejection, rejection of unpublished files and revocation of active connections.
+- A separate test disabled all direct IP transports, completed the same checks through the public relay, and asserted that the actual path was relay.
+- Local tests do not establish traversal success across every carrier or NAT type. Mac/Linux game-level testing remains pending.
+- Forwarding covers Minecraft Java TCP only; additional UDP services such as voice mods are unsupported.
+- Tunneling does not bypass server authentication or solve account and Realms access. The legacy acceptance server required authenticated accounts; current explicitly configured local/offline server behavior is documented in [world deployment](WORLDS.md).
+- The legacy synchronization scope covers published mods, not configuration, scripts or resource packs. Game/Fabric version mismatches block synchronization. Bound clients do not join with an old environment after connection or synchronization failure.
+- The host must stay online and awake. Interrupted Minecraft sessions require rejoining; restored transport reachability is not seamless game-session recovery.
 
-没有自动购买或部署任何云服务器。部署方式参考 [Iroh 官方自建中继说明](https://docs.iroh.computer/add-a-relay)；请按实际部署版本的配置文档操作。
+Protocol reference: [Iroh Rust 1.2](https://docs.rs/iroh/1.2.0/iroh/).
 
-## 当前边界与验收
-
-- Windows 上已通过两个隔离后台的真实加密 Mod 传输、TCP 双向转发、非法邀请拒绝、未发布文件拒绝及运行中撤销测试。
-- 另行禁用全部直连 IP 传输，实测通过公共中继完成相同测试；断言实际连接路径为 relay。
-- 上述本机直连测试不等于不同运营商、不同 NAT 条件下的打洞实测；macOS/Linux 实机验收仍待完成。
-- 这里只承载 Minecraft Java TCP。语音 Mod 等额外 UDP 服务尚未转发。
-- 服务器仍要求正版验证。离线档案、Realms、微软账户注册问题不会被穿透功能绕过。
-- Mod 配置/脚本/资源包尚不在同步范围；Minecraft/Fabric 版本不匹配会阻止同步。绑定服务器的实例在连接或同步失败时不会带着旧环境强行加入。
-- 服主服务器停机或电脑休眠时无法加入。游戏连接中断后需要重新加入；网络恢复时 Iroh 会重新建立底层可达性，不承诺无缝恢复已有 Minecraft 会话。
-
-协议机制参考 [Iroh Rust 文档](https://docs.rs/iroh/1.2.0/iroh/)。
+[Chinese version](NETWORK.zh-CN.md)

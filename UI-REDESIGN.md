@@ -1,22 +1,14 @@
-# 游戏主菜单界面 · 2026-09-13
+# Game menu interface
 
-首页采用全窗口方块世界背景、顶部导航、横向实例选择和底部启动区。原有表格式游戏库以及侧栏/横幅/卡片式中间方案已替换。
+The home screen uses a full-window block-world background, top navigation, horizontal instance selection and a bottom launch area. Selecting a game updates its name and version beside a single primary Play button. Running games show Stop. Preparation and account flows retain their existing behavior.
 
-选择实例会更新底部名称和版本，只有一个主要启动按钮。开始游戏仍调用原有自动准备与账户流程；运行中的实例显示停止。新建游戏、加入朋友、搜索、实例设置、回收站与任务入口保留。
+Mods, Worlds & saves, and Shaders are directly accessible. Runtime details, logs and update recovery live in advanced management. Shared storage is accessed through Launcher settings and shows mod storage use and the data-folder entry point. File deduplication is unchanged. The current deletion flow is permanent; see [deletion behavior](DELETION.md).
 
-管理页包含模组、世界与存档、光影；运行环境、日志、更新恢复位于高级管理。光影不再需要先展开高级管理。
+The background is a bundled generated asset, and default instance thumbnails use different crops of that asset rather than pretending to be save screenshots. See [asset notes](desktop/src/assets/README.md).
 
-背景是本地内置的生成素材，实例缩略图使用默认背景的不同裁切，并非实际存档截图。生成方式与提示词见 desktop/src/assets/README.md。
+Validation included TypeScript and Vite, layouts at 1240-by-787 and 920-by-587, selected-instance state, search and clearing, creation and invitation entry points, and real shader/world/backup lists from an isolated backend. The selected NeoForge test instance opened the player-profile flow without downloading or launching that test game. User game content was not changed.
 
-验证：
+Buttons and inputs retain keyboard focus styling, selections use aria-pressed, and reduced-motion preferences are respected. This was not a full accessibility compliance audit. Microsoft API access remains unapproved.
 
-- TypeScript 检查和 Vite 生产构建通过。
-- 1240×787、920×587 窗口下检查布局；最小窗口首页无横向页面溢出，开始游戏完整可见。
-- 多实例选择正确更新底部名称、版本与选中状态；开始游戏为选中的 NeoForge 测试实例打开玩家档案流程，未实际下载或启动该测试实例。
-- 搜索/清除搜索、创建游戏和邀请入口可达。
-- 最新隔离后台可读取真实光影列表与世界/备份列表；本轮未修改实际游戏内容或存档。
-- 使用原生按钮与输入控件，实例/标签通过 aria-pressed 标识选择，保留键盘焦点样式和减少动态效果支持。未进行完整无障碍合规审计。
 
-微软登录仍受之前记录的 Client ID / API 授权限制；本轮为界面改版，不改变该限制。
-
-存储入口调整：主导航不再包含内容仓库；从启动器设置进入存储管理，只展示模组占用及数据文件夹入口。已验证设置 → 存储管理 → 返回设置流程。模组去重与复用的后台逻辑保持不变。
+[Chinese version](UI-REDESIGN.zh-CN.md)

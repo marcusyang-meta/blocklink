@@ -1,11 +1,14 @@
-# 永久删除实例与服务器
+# Permanently deleting games and servers
 
-在游戏或服务器详情页点击删除，输入显示的完整名称，确认「永久删除，无法恢复」。删除包含该实例内的游戏文件、世界存档、配置、光影、运行日志和本地世界备份，不进入回收站。其他实例和共享下载缓存保留。
+Delete a game or server from its details page, enter its full displayed name, and confirm permanent deletion. This removes game files, worlds, configuration, shaders, logs and local world backups without moving them to a recycle bin. Other games and shared download caches remain.
 
-运行中、绑定客户端运行中、世界被外部游戏锁定时会拒绝删除。目录链接和路径越界也会被拒绝。联机房间关闭，本机绑定解除。
+Deletion is rejected while the instance or its bound client is running, or a world is locked by an external game. Directory links and paths outside the managed root are rejected. Rooms are closed and local bindings removed.
 
-为避免中途退出留下损坏的游戏列表，先将已确认删除的目录移出游戏库，再删除文件；这不是可恢复回收站。异常退出后下次启动继续清理；文件仍被其他程序占用时需先关闭该程序。
+After confirmation, the directory is moved out of the library before its files are removed. This internal staging area is not a recoverable recycle bin. Cleanup resumes after an interrupted process; files held by another program require that program to close first.
 
-应用导航已移除回收站入口。旧版本回收站数据不自动清空；旧版恢复接口保留以兼容已有数据。
+The navigation no longer exposes a recycle bin. Data placed in the old recycle bin is not automatically purged; legacy restore endpoints remain for compatibility.
 
-测试覆盖：名称确认、运行世界锁保护、存档及本地备份彻底删除、共享硬链接内容保留、删除完成后没有回收站条目，以及中断后启动清理。
+Tests cover name confirmation, world locks, deletion of saves and backups, preservation of shared hard-linked content, absence of new recycle-bin entries, and cleanup after interruption.
+
+
+[Chinese version](DELETION.zh-CN.md)

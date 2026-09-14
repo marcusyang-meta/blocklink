@@ -1,9 +1,12 @@
-# 已安装 Mod 分类
+# Installed mod categories
 
-游戏详情 → 模组：按性能优化、冒险探索、科技、魔法、前置依赖等类别分组，并提供分类数量、名称搜索和适用环境筛选。一个模组可以有多个分类；全部视图只展示一行，分类筛选可以在各所属类别找到它。版本选择和移除操作保留。
+The Mods page groups installed mods by categories such as performance, adventure, technology, magic and dependencies. It includes category counts, name search and environment filters. A mod can have several categories but appears only once in the All view. Version selection and removal remain available.
 
-使用文件 SHA-512 向 Modrinth 查询对应项目，只传文件指纹，不上传模组、存档或配置。识别成功后显示项目名称、图标和作者分类；未识别或没有分类的文件放入“未分类”。不凭文件名猜测用途。
+Blocklink queries Modrinth with the file's SHA-512 fingerprint; it does not upload the mod, worlds or configuration. Recognized files display project names, icons and publisher categories. Unrecognized files and projects without categories appear as Uncategorized. Categories are not guessed from filenames.
 
-分类结果缓存在本地 7 天，点击“更新分类”可主动刷新。离线时保留已缓存结果；网络失败不阻止查看和管理 Mod。分类功能不会改动锁定版本或游戏文件。
+Results are cached locally for seven days and can be refreshed manually. Cached results remain available offline; network failures do not block mod management. Classification does not change locked versions or game files.
 
-验证包含离线缓存读取、原锁定环境与模组校验值保持不变、分类响应处理。使用真实安装的 Fabulously Optimized 验证项目识别和分类筛选。
+Checks cover offline cache reads, unchanged lockfiles and hashes, and category response handling. Project identification and filtering were verified with an installed Fabulously Optimized pack.
+
+
+[Chinese version](INSTALLED-MODS.zh-CN.md)

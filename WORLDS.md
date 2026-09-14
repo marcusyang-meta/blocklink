@@ -1,33 +1,35 @@
-# 世界迁移与部署
+# World migration and server deployment
 
-在游戏实例中打开「世界与存档」。
+Open Worlds & saves in a game instance.
 
-## 从其他启动器迁移
+## Import from another launcher
 
-1. 创建与原世界完全相同 Minecraft 版本的实例，准备原 Loader、Mods 和配置。
-2. 关闭原游戏或服务器，保存世界。
-3. 点击「从其他启动器导入」，选择包含 level.dat 的世界文件夹、saves，或者游戏目录。扫描最多四层，较深的启动器目录请直接选择 saves。
-4. 选择世界并确认环境，点击「复制并导入」。原存档保留，重复导入创建新的独立副本。
+1. Prepare an instance with exactly the original Minecraft version, loader, mods and configuration.
+2. Save the world and close the original game or server.
+3. Choose Import from another launcher and select a world directory containing level.dat, a saves directory, or a game directory. Scanning reaches four levels; select saves directly for deeper layouts.
+4. Select the world, confirm its environment, and copy it into Blocklink. The original remains intact; repeated imports create independent copies.
 
-支持 Java 版文件夹。ZIP 需先解压；不转换基岩版，不导入启动器账户，也不自动识别、迁移整合包依赖。版本未知或不完全一致会拒绝导入，以避免降级或意外升级。
+Only Java Edition folders are supported. Extract ZIP files first. Import does not convert Bedrock worlds, migrate launcher accounts or automatically resolve modpack dependencies. Unknown or mismatched game versions are rejected to prevent accidental upgrades or downgrades.
 
-## 一键部署世界
+## Deploy a world as a server
 
-在世界旁点击「部署为服务器」，填写名称和端口。
+Choose Deploy as server beside a world and enter a name and port. Blocklink installs a server with the source instance's game version, loader and memory settings. It reuses required server mods, excludes mods marked client-only, and copies config, defaultconfigs, kubejs, scripts and the entire world.
 
-- 沿用源实例的游戏版本、Loader 和内存设置，自动安装服务器。
-- 使用共享仓库安装服务端需要的 Mods，排除标记为客户端专用的 Mods；复制 config、defaultconfigs、kubejs、scripts 和整个世界。
-- 可选择将 level.dat 中的单人玩家背包、位置等数据写入当前档案的服务器玩家文件。原玩家 UUID 能识别时，同时复制其统计与进度到目标身份。此操作不改写宠物归属等实体引用；没有内嵌 Player 数据的世界保留原玩家文件。
-- 离线模式必须明确选择，只监听 127.0.0.1；可通过 Blocklink 邀请连接。离线名字没有正版身份保证。背包迁移要求档案模式与服务器验证模式一致。
-- 勾选「部署完成后立即启动」并同意 EULA，可以一次完成部署和启动；否则部署后进入服务器页面。
-- 开服主机承担世界运行和保存，Cloudflare 提供大厅与网络连接，不托管 Minecraft 世界。
+Optional player migration copies embedded single-player inventory and position into the current profile's server player file. When the original UUID can be identified, statistics and advancements are copied too. Entity ownership references, such as pets, are not rewritten. Worlds without embedded Player data retain their original player files.
 
-## 旧世界与失败恢复
+Offline mode requires an explicit choice, listens only on 127.0.0.1, and can be reached through Blocklink invitations. Offline names do not establish an authenticated identity. Inventory migration requires matching profile and server authentication modes.
 
-在停止的服务器中导入新世界，会保留现有世界并切换到新副本。「切换到此世界」可选回旧世界；不会合并两份世界的后续进度。这是保留替换前的世界，不是定时备份系统。
+Select immediate startup and accept the Minecraft EULA to deploy and start in one operation. Otherwise, deployment opens the server page. The host computer runs and saves the world; Cloudflare provides discovery and connectivity, not Minecraft hosting.
 
-复制会校验源文件前后哈希、拒绝符号链接和特殊文件，并尝试占用 session.lock。外部启动器的锁实现存在平台差异，因此必须关闭源游戏后操作。世界不使用硬链接。
+## Existing worlds and recovery
 
-新副本完成后才更改活动世界设置。部署失败的服务器标记为未完成并禁止启动，源世界不受影响；从源世界重新部署会创建新服务器。中断时留下的未完成副本不会作为活动世界启动。
+Importing into a stopped server preserves its existing world and switches to a new copy. You can switch back; subsequent progress is not merged. This is preservation before replacement, not scheduled backup.
 
-现在也支持从 NeoForge、Forge、Quilt 实例部署相同游戏版本和相同 Loader 的服务器。支持范围见 LOADERS.md。
+Copying checks source hashes before and after transfer, rejects symlinks and special files, and attempts to acquire session.lock. External launcher locking differs across platforms, so close the source game first. World files are never hard-linked.
+
+The active-world setting changes only after copying completes. Failed deployments are marked incomplete and cannot start; the source world remains intact. Retrying from the source creates a new server. Interrupted copies do not become active worlds.
+
+Fabric, NeoForge, Forge and Quilt deployment requires matching game and loader versions. See [loader support](LOADERS.md).
+
+
+[Chinese version](WORLDS.zh-CN.md)
