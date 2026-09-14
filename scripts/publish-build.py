@@ -3,12 +3,14 @@ import json,os,pathlib,re,subprocess,sys,tempfile,urllib.parse
 def gh(*args):return subprocess.check_output(['gh',*args],text=True)
 def api(path):return json.loads(gh('api',path))
 repo=os.environ['GH_REPO'];run=sys.argv[1];sha=sys.argv[2]
+requested_tag=sys.argv[3] if len(sys.argv)>3 else None
 assert re.fullmatch(r'[0-9]+',run) and re.fullmatch(r'[0-9a-f]{40}',sha)
 info=api(f'repos/{repo}/actions/runs/{run}')
 assert info['conclusion']=='success' and info['head_sha']==sha and info['name']=='Build Windows, macOS and Linux'
 release=None
 for candidate in api(f'repos/{repo}/releases?per_page=30'):
     tag=candidate['tag_name']
+    if requested_tag and tag!=requested_tag:continue
     if candidate['draft'] or not re.fullmatch(r'v[0-9A-Za-z._-]+',tag):continue
     if api(f'repos/{repo}/commits/{tag}')['sha']==sha:release=candidate;break
 if release is None:
