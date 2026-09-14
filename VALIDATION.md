@@ -1,6 +1,16 @@
 # Validation
 
-## Cross-network acceptance (2026-09-14): failed
+## 0.1.4 relay fix: cross-network world entry passed
+
+- ICE offers and answers no longer wait for every endpoint to finish gathering. A regression test uses an unresponsive local STUN endpoint and still negotiates and transfers 256 KiB in under two seconds on the local Windows test machine.
+- TURN TCP/TLS transport preserves STUN and ChannelData framing, verifies TLS certificates against public trust roots, and keeps adapter sockets/tasks tied to the peer connection. TLS adapters use an explicit loopback ICE socket on Windows. Signaling processes descriptions and trickled candidates in order.
+- 67 local workspace tests passed. All four native CI platforms passed their Rust test step in [the 0.1.4 build](https://github.com/marcusyang-meta/blocklink/actions/runs/34830257735). Packaging is tracked by that run separately.
+- A production Cloudflare lobby integration test with both peers forced to TLS 443 transferred a 2 MiB mod, applied configuration updates, forwarded TCP and verified room revocation (27.70 seconds).
+- [Real cross-network acceptance passed](https://github.com/marcusyang-meta/blocklink/actions/runs/34830647976): a GitHub Linux Minecraft 1.21.1/Fabric 0.19.5 client joined an isolated Windows Fabric server. Both peers allowed only relay candidates and only the Cloudflare TLS 443 endpoint. The client received world advancements; the server logged `CloudCheck joined the game` and confirmed its player list. The player remained connected for 60 seconds until room closure, then disconnected. The server saved and stopped normally; the invite subsequently returned HTTP 410.
+- The first repaired-network attempt reached Minecraft rendering but stopped before world entry. The unattended fixture now sets `onboardAccessibility:false`; the retry passed. This preference change is test-only. Real users retain Minecraft's first-run accessibility setup.
+- Windows 0.1.4 EXE was built locally and passed authenticated native service startup and clean shutdown checks. Both participants should update to 0.1.4 for trickled-candidate support. Long-session soak, network-switch reconnection, all-UDP-blocked default-policy selection, and two residential-network testing remain separate checks; the result above specifically verifies forced TLS relay across machines.
+
+## Earlier 0.1.3 cross-network acceptance (2026-09-14): failed
 
 - A real isolated Fabric 1.21.1 server loaded on Windows loopback. The host used the test-only `RTCIceTransportPolicy::Relay` setting with the production Cloudflare lobby. A GitHub-hosted Linux client ran the published 0.1.3 AppImage.
 - The [cloud client](https://github.com/marcusyang-meta/blocklink/actions/runs/34826467602) rendered its launcher and reached room connection, but failed ICE gathering after 25 seconds (`Waiting for network candidates timed out`). Minecraft did not launch and no player joined the server. An earlier attempt failed before app startup because the harness selected two AppImages; that harness error was corrected.
