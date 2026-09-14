@@ -19,6 +19,6 @@ test('updater feed is public and briefly cached without exposing other update pa
 test('completed release feeds are selected automatically and incomplete releases are skipped',async()=>{
  const url='https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/latest.json';
  const feed={version:'0.1.2',platforms:Object.fromEntries(['windows-x86_64','darwin-aarch64','darwin-x86_64','linux-x86_64'].map(p=>[p,{url:url.replace('latest.json',p),signature:'signed'}]))};
- let calls=0;const remote=async()=>++calls===1?Response.json([{draft:false,assets:[]},{draft:false,assets:[{name:'latest.json',browser_download_url:url}]}]):Response.json(feed);
- const response=await latestUpdate(new Request('https://example.test/updates/latest.json'),{},remote);assert.deepEqual(await response.json(),feed);assert.equal(calls,2);
+ let calls=0;const remote=async()=>{calls++;if(calls===1)return new Response('<feed><link href="https://github.com/marcusyang-meta/blocklink/releases/tag/v0.1.3-preview.1"/><link href="https://github.com/marcusyang-meta/blocklink/releases/tag/v0.1.2-preview.1"/></feed>');if(calls===2)return new Response('Not ready',{status:404});return Response.json(feed)};
+ const response=await latestUpdate(new Request('https://example.test/updates/latest.json'),{},remote);assert.deepEqual(await response.json(),feed);assert.equal(calls,3);
 });

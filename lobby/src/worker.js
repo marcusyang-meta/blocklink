@@ -50,24 +50,25 @@ export default {
 };
 
 export async function latestUpdate(request,env,remote=fetch) {
+  let reason='no-complete-release';
   const cache=typeof caches==='undefined'?null:caches.default;
   const key=new Request('https://blocklink.jyang.dev/updates/latest.json');
   const hit=await cache?.match(key);if(hit)return hit;
   try {
     if(env.LOCAL_TEST!=='true') {
-      const listing=await remote('https://api.github.com/repos/marcusyang-meta/blocklink/releases?per_page=10',{headers:{'User-Agent':'Blocklink-updates','Accept':'application/vnd.github+json'},signal:AbortSignal.timeout(10000)});
-      if(listing.ok) for(const release of await listing.json()) {
-        if(release.draft)continue;
-        const asset=release.assets?.find(a=>a.name==='latest.json');
-        if(!asset?.browser_download_url?.startsWith('https://github.com/marcusyang-meta/blocklink/releases/download/'))continue;
-        const result=await remote(asset.browser_download_url,{signal:AbortSignal.timeout(10000)});if(!result.ok)continue;
+      const listing=await remote('https://github.com/marcusyang-meta/blocklink/releases.atom',{headers:{'User-Agent':'Blocklink-updates','Accept':'application/atom+xml'},signal:AbortSignal.timeout(10000)});
+      reason=`github-${listing.status}`;
+      const atom=listing.ok?await listing.text():'';
+      const tags=[...new Set([...atom.matchAll(/<link\b[^>]*href="https:\/\/github\.com\/marcusyang-meta\/blocklink\/releases\/tag\/(v[0-9A-Za-z._-]+)"/g)].map(m=>m[1]))].slice(0,10);
+      for(const tag of tags) {
+        const result=await remote(`https://github.com/marcusyang-meta/blocklink/releases/download/${tag}/latest.json`,{signal:AbortSignal.timeout(10000)});reason=`asset-${result.status}`;if(!result.ok)continue;
         const feed=await result.json();
         if(typeof feed.version!=='string'||!['windows-x86_64','darwin-aarch64','darwin-x86_64','linux-x86_64'].every(p=>typeof feed.platforms?.[p]?.signature==='string'&&feed.platforms[p].url?.startsWith('https://github.com/marcusyang-meta/blocklink/releases/download/')))continue;
-        const response=Response.json(feed,{headers:{'Cache-Control':'public, max-age=300'}});await cache?.put(key,response.clone());return response;
+        const response=Response.json(feed,{headers:{'Cache-Control':'public, max-age=300','X-Update-Source':'release'}});await cache?.put(key,response.clone());return response;
       }
     }
-  }catch{/* Keep the last deployed feed available during GitHub outages or rate limiting. */}
-  const asset=await env.ASSETS.fetch(request);const response=new Response(asset.body,asset);response.headers.set('Cache-Control','public, max-age=300');return response;
+  }catch{reason='upstream-error';/* Keep the last deployed feed available during GitHub outages or rate limiting. */}
+  const asset=await env.ASSETS.fetch(request);const response=new Response(asset.body,asset);response.headers.set('Cache-Control','public, max-age=300');response.headers.set('X-Update-Source',`fallback-${reason}`);return response;
 }
 
 export class Room {
