@@ -1,5 +1,13 @@
 # Validation
 
+## Cross-network acceptance (2026-09-14): failed
+
+- A real isolated Fabric 1.21.1 server loaded on Windows loopback. The host used the test-only `RTCIceTransportPolicy::Relay` setting with the production Cloudflare lobby. A GitHub-hosted Linux client ran the published 0.1.3 AppImage.
+- The [cloud client](https://github.com/marcusyang-meta/blocklink/actions/runs/34826467602) rendered its launcher and reached room connection, but failed ICE gathering after 25 seconds (`Waiting for network candidates timed out`). Minecraft did not launch and no player joined the server. An earlier attempt failed before app startup because the harness selected two AppImages; that harness error was corrected.
+- Separate [credential-free network diagnostics](https://github.com/marcusyang-meta/blocklink/actions/runs/34826840100) received STUN binding responses on UDP 3478/53, but TURN UDP 3478 timed out after three attempts. TURN UDP 53 and TLS 443/5349 were reachable. The local host received TURN UDP 3478 binding responses. These probes establish endpoint reachability, not authenticated TURN allocation or a selected ICE route; they ran on a separate GitHub runner.
+- The current `webrtc` 0.20.5 transport skips secure and non-UDP TURN URLs. Blocklink waits for all gathering to complete before sending its offer. A stalled endpoint can therefore block negotiation, and TCP/TLS fallback is not implemented. This is an unresolved multiplayer reliability issue, not a passed cloud multiplayer check.
+- The isolated host was stopped after diagnosis and its original authentication/port settings restored. Real cross-network world entry, room-close disconnect, automatic relay fallback and reconnect remain unverified.
+
 ## 0.1.3 cloud and native verification
 
 - All four native builds, Rust tests and service checks passed: [Windows, Linux, Apple Silicon and Intel Mac](https://github.com/marcusyang-meta/blocklink/actions/runs/34818816053).
