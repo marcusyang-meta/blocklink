@@ -34,7 +34,7 @@ jobs:
           version: 11
       - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev libdbus-1-dev libsecret-1-dev patchelf
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev libdbus-1-dev libsecret-1-dev patchelf xvfb libgl1-mesa-dri mesa-utils
       - name: Rust tools
         run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
       - uses: actions/setup-python@v5
@@ -62,6 +62,29 @@ jobs:
       - name: Test native desktop host (Unix)
         if: runner.os != 'Windows'
         run: python scripts/service-smoke.py target/${{ matrix.target }}/release/blocklink-desktop
+      - name: Cloud desktop and Minecraft rendering (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a dbus-run-session -- python scripts/cloud-desktop-smoke.py target/${{ matrix.target }}/release/blocklink-desktop --game --report cloud-checks/Linux.json
+      - name: Cloud desktop rendering (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        timeout-minutes: 4
+        run: python scripts/cloud-desktop-smoke.py target/${{ matrix.target }}/release/blocklink-desktop.exe --report cloud-checks/Windows.json
+      - name: Cloud desktop rendering (macOS)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        timeout-minutes: 4
+        run: python scripts/cloud-desktop-smoke.py target/${{ matrix.target }}/release/blocklink-desktop --report cloud-checks/${{ matrix.label }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Cloud-check-${{ matrix.label }}
+          path: cloud-checks/*.json
+          if-no-files-found: warn
       - name: Portable archives with licenses and checksums
         run: python scripts/package-portable.py target/${{ matrix.target }}/release ${{ matrix.label }}
       - name: Sign updater payloads

@@ -612,5 +612,11 @@
   "新版本 {0}": "Version {0} is available",
   "完成下载后将重新打开启动器，请先结束游戏和开服。": "Blocklink will restart after downloading. Finish your games and stop hosted servers first.",
   "下载并更新": "Download and update",
-  "下载更新": "Downloading update"
+  "下载更新": "Downloading update",
+  "你的设置与服务器不同": "Your settings differ from the server",
+  "使用服务器版本前，会先备份你的修改。保留本地设置会暂停同步，暂时无法加入这个房间。": "Your changes will be backed up before using the server version. Keeping local settings pauses synchronization and joining this room.",
+  "查看受影响的文件（{0}）": "View affected files ({0})",
+  "备份并使用服务器版本": "Back up and use server version",
+  "保留本地，暂不同步": "Keep local settings for now",
+  "查看设置备份": "View settings backups"
 }

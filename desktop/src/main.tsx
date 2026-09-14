@@ -1,3 +1,4 @@
+import {ContentConflicts} from './ContentConflicts';
 import {AppUpdates} from './AppUpdates';
 import {t,getLocale,ServiceMessage,useLocale,LanguagePicker} from './i18n';
 import {InstalledMods} from './InstalledMods';
@@ -41,6 +42,7 @@ function App(){
  const [loaderVersions,setLoaderVersions]=useState<Json[]>([]),[loadingLoader,setLoadingLoader]=useState(false),[loaderError,setLoaderError]=useState('');
  useEffect(()=>{if(modal!=='create'||form.loader==='vanilla')return;let active=true;setLoadingLoader(true);setLoaderVersions([]);setLoaderError('');api('loaders',{minecraft:form.minecraft,loader:form.loader}).then(v=>{if(active)setLoaderVersions(v)}).catch(e=>{if(active)setLoaderError(String(e))}).finally(()=>{if(active)setLoadingLoader(false)});return()=>{active=false}},[modal,form.minecraft,form.loader]);
  const refresh=async()=>{try{const [data,network,lobby]=await Promise.all([api('status'),api('peer-status'),api('lobby-status')]);setState({...data,network,lobby})}catch(e){setError(String(e))}};
+ useEffect(()=>{if(state){void invoke('confirm_update_startup').catch(()=>{});}},[!!state]);
  useEffect(()=>{void refresh();const t=setInterval(refresh,1500);api('versions').then(setVersions).catch(()=>{});return()=>clearInterval(t)},[]);
  useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape'){startAfterLogin.current=null;setModal('');setDevice(null)}};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[]);
  const items=(state?.instances||[]) as Item[],current=items.find(x=>x.instance.instanceId===selected),jobs=(state?.jobs||[]) as Json[],activeJobs=jobs.filter(j=>['queued','running'].includes(j.status));
@@ -82,6 +84,7 @@ function App(){
  {current.pack&&<p className="pack-caption">{current.pack.name} · {current.pack.version}</p>}
  {advanced&&<div className="info-strip"><span>{loaderName(current.instance)}</span><span>{current.config.server?t("端口 {0}",current.config.port):t("运行详情")}</span></div>}
  {activeJobs.filter(j=>j.instanceId===selected).map(j=><JobProgress key={j.id} job={j} onRefresh={refresh}/>)}
+ <ContentConflicts key={selected} item={current} jobs={jobs} onRefresh={refresh}/>
  <Recovery item={current} jobs={jobs} onStart={()=>start()} onSettings={openSettings} onRestore={()=>{setAdvanced(true);setTab('updates')}} onLogs={()=>{setAdvanced(true);setTab('logs')}} onRefresh={refresh}/>
 
  {current.config.server&&<div className="sharing-row"><span><Link size={15}/>{t("邀请朋友联机 · 自动同步 Mods")}</span><button className="button" disabled={!current.published} onClick={()=>{setForm({mode:'peer',host:state.settings.sharing?.host||'',port:state.settings.sharing?.port||25566,relay:state.settings.peerRelay||''});setInvitation('');setModal('share')}}>{t("邀请朋友")}</button></div>}

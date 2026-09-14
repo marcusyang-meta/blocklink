@@ -4,6 +4,12 @@ Blocklink checks for signed app updates when opened. Use **Check for app updates
 
 Windows updates replace the portable executable without installing an MSI or NSIS package. macOS updates replace the `.app`; Linux updates use the AppImage format. A Linux `.deb` installation should be updated using its package manager or switched to the portable AppImage. The old preview has no updater and needs one manual download to adopt this feature. OS code signing and macOS notarization are separate from update signatures.
 
+## Local recovery changes awaiting release
+
+The launcher checks both service version and protocol before connecting. An idle service supporting safe shutdown is replaced automatically; a busy or unsupported old service displays a startup error in the launcher instead of closing the window or accepting incompatible commands.
+
+On Windows, the update helper retains the previous executable until the frontend has rendered a successful service response and the new process has remained alive for another five seconds. Early exit or a 60-second startup timeout restores and restarts the previous executable. If restoration fails, the backup remains available and its path is recorded in `update-error.txt`. This startup check does not cover crashes after the confirmation window or a power failure interrupting the helper. macOS/Linux still use the upstream installer and do not yet have this additional recovery path.
+
 ## Modpacks
 
 Open an installed pack's project in **Modpacks**, select a release, and choose **Upgrade to selected version**. This creates a separate instance and copies worlds. The original instance is retained, including personal modifications, as the rollback option. The new instance uses the pack author's configuration and scripts; local mod or configuration changes are not merged into it. World migration currently requires an identical Minecraft version and refuses a running source instance. A failed migration blocks launching the incomplete copy until the job succeeds.

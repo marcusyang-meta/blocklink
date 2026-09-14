@@ -160,7 +160,7 @@ impl Engine {
             }
         }
         Ok(
-            json!({"instances":instances,"jobs":*self.jobs.lock().unwrap(),"account":self.active_account(false).map(|a| if a.is_null() { a } else { auth::public(&a) }).unwrap_or(Value::Null),"settings":*self.settings.lock().unwrap(),"root":self.ws.root(),"platform":format!("{} / {}",game::os(),game::arch()),"store":{"bytes":bytes,"count":count}}),
+            json!({"serviceVersion":env!("CARGO_PKG_VERSION"),"serviceProtocol":1,"instances":instances,"jobs":*self.jobs.lock().unwrap(),"account":self.active_account(false).map(|a| if a.is_null() { a } else { auth::public(&a) }).unwrap_or(Value::Null),"settings":*self.settings.lock().unwrap(),"root":self.ws.root(),"platform":format!("{} / {}",game::os(),game::arch()),"store":{"bytes":bytes,"count":count}}),
         )
     }
     fn job(self: &Arc<Self>, action: String, mut payload: Value) -> Value {
@@ -283,6 +283,7 @@ impl Engine {
             }
             return remote::join(self, p, &report);
         }
+        if action=="content-resolve" {return content::resolve(self,field(p,"id")?);}
         if action=="pack-export" {return packs::export(self,p,report);}
         if ["pack-install","pack-import"].contains(&action){return packs::install(self,p,report);}
         if action == "create" {
@@ -715,6 +716,7 @@ impl Engine {
             peer::ensure(self)?;
         }
         match action {
+            "content-conflicts" => content::conflicts(self,field(&p,"id")?),
             "shader-state" => {let i=self.ws.instance(field(&p,"id")?)?;shaders::state(&self.ws,&i)},
             "preflight" => {let i=self.ws.instance(field(&p,"id")?)?;preflight::inspect(&self.ws,&i,None)},
             "world-backups" => worlds::backups(self,field(&p,"id")?),
@@ -856,7 +858,7 @@ impl Engine {
             "lobby-create" | "offline-profile" | "remote-join" | "create" | "settings"
             | "shader-check" | "shader-apply" | "shader-select" | "shader-restore"
             | "logout" | "install" | "configure" | "mod-add" | "mod-local" | "mod-remove" | "mod-compatibility-check" | "mod-update-check" | "mod-update-apply" | "mod-update-restore" | "mod-toggle"
-            | "verify" | "sync" | "publish" | "launch" | "duplicate" | "world-import" | "pack-install" | "pack-import" | "pack-export"
+            | "verify" | "sync" | "publish" | "launch" | "duplicate" | "world-import" | "pack-install" | "pack-import" | "pack-export" | "content-resolve"
             | "world-backup" | "world-backup-restore" | "world-deploy" | "world-activate" | "instance-delete" | "instance-restore" => {
                 Ok(self.job(action.into(), p))
             }
@@ -933,6 +935,9 @@ pub fn serve(root: PathBuf) -> Result<()> {
     Ok(())
 }
 pub fn rpc(root: &Path, action: &str, payload: Value) -> Result<Value> {
+    rpc_timeout(root, action, payload, Duration::from_secs(260))
+}
+fn rpc_timeout(root: &Path, action: &str, payload: Value, timeout: Duration) -> Result<Value> {
     let endpoint = read_json(&root.join("service.json"))?;
     let port = endpoint["port"]
         .as_u64()
@@ -940,7 +945,7 @@ pub fn rpc(root: &Path, action: &str, payload: Value) -> Result<Value> {
         .context("无效服务端口")?;
     let response: Value = reqwest::blocking::Client::builder()
         .no_proxy()
-        .timeout(Duration::from_secs(260))
+        .timeout(timeout)
         .build()?
         .post(format!("http://127.0.0.1:{port}/rpc"))
         .bearer_auth(field(&endpoint, "token")?)
@@ -953,9 +958,27 @@ pub fn rpc(root: &Path, action: &str, payload: Value) -> Result<Value> {
     }
     Ok(response["value"].clone())
 }
+pub fn prepare_service_update(root: &Path) -> Result<Value> {
+    rpc_timeout(root, "prepare-app-update", json!({}), Duration::from_secs(5))
+}
+fn compatible_service(status: &Value) -> bool {
+    status["serviceVersion"].as_str() == Some(env!("CARGO_PKG_VERSION")) && status["serviceProtocol"] == 1
+}
+#[test]
+fn service_compatibility_requires_version_and_protocol() {
+    assert!(!compatible_service(&json!({})));
+    assert!(!compatible_service(&json!({"serviceVersion":"0.0.0","serviceProtocol":1})));
+    assert!(!compatible_service(&json!({"serviceVersion":env!("CARGO_PKG_VERSION"),"serviceProtocol":2})));
+    assert!(compatible_service(&json!({"serviceVersion":env!("CARGO_PKG_VERSION"),"serviceProtocol":1})));
+}
 pub fn ensure_service(root: &Path) -> Result<()> {
-    if rpc(root, "status", json!({})).is_ok() {
-        return Ok(());
+    let probe = || rpc_timeout(root, "status", json!({}), Duration::from_secs(3));
+    if let Ok(status) = probe() {
+        if compatible_service(&status) { return Ok(()); }
+        rpc_timeout(root, "prepare-app-update", json!({}), Duration::from_secs(5))
+            .context("另一版本的 Blocklink 后台仍在运行。请结束游戏和服务器，退出旧版后重新打开。 / Another Blocklink version is running. Finish games and servers, then exit the old launcher and reopen.")?;
+        // Wait for the old listener to close before starting its replacement.
+        std::thread::sleep(Duration::from_millis(750));
     }
     private_dir(root)?;
     hidden(
@@ -970,7 +993,7 @@ pub fn ensure_service(root: &Path) -> Result<()> {
     .spawn()?;
     for _ in 0..100 {
         std::thread::sleep(Duration::from_millis(100));
-        if rpc(root, "status", json!({})).is_ok() {
+        if probe().is_ok_and(|status| compatible_service(&status)) {
             return Ok(());
         }
     }

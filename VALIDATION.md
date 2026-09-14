@@ -1,5 +1,14 @@
 # Validation
 
+## Local P0 recovery fixes (not published)
+
+- 64 Rust tests passed; seven external integrations remain opt-in. TypeScript and the production frontend build passed.
+- An interactive Windows native smoke test replaced the launcher, safely handed over an idle 0.1.2 service, and received health confirmation from the rendered UI before removing the old executable.
+- A second native run deliberately terminated the new launcher. The helper restored the exact previous executable and restarted it.
+- Reproduce with `scripts/windows-update-smoke.py --new PATH --previous PATH --work-dir PATH` on an interactive Windows desktop. The script uses isolated data and retains fixtures for inspection.
+- Sandboxed WebView startup did not acknowledge readiness and correctly triggered rollback; successful UI verification used normal desktop permissions.
+- Legacy services without safe shutdown still require exiting the old launcher manually. They are rejected instead of silently used. macOS/Linux post-update recovery and interactive game checks remain unverified.
+
 ## 0.1.2 feature verification
 
 - 61 Rust workspace tests passed; external integrations remain opt-in. A separate local Cloudflare-compatible lobby check transferred mods and configuration updates over real WebRTC, forwarded TCP and verified revocation.
