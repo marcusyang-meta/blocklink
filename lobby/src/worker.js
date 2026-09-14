@@ -22,7 +22,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (url.pathname === '/health') return json({service: 'blocklink-lobby', version: 1, turnConfigured: !!(env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN)});
-      if ((request.method === 'GET' || request.method === 'HEAD') && (['/', '/privacy', '/en', '/en/', '/en/privacy'].includes(url.pathname) || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/downloads/'))) {
+      if ((request.method === 'GET' || request.method === 'HEAD') && (['/', '/privacy', '/en', '/en/', '/en/privacy', '/updates/latest.json'].includes(url.pathname) || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/downloads/'))) {
         if (!env.ASSETS) return json({error: '页面暂不可用'}, 503);
         const assetUrl=new URL(request.url);
         const asset=await env.ASSETS.fetch(new Request(assetUrl,request));
@@ -31,6 +31,7 @@ export default {
         response.headers.set('X-Content-Type-Options','nosniff');
         response.headers.set('Content-Security-Policy',"default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
         if(url.pathname.endsWith('.exe')) response.headers.set('Content-Disposition','attachment; filename="Blocklink.exe"');
+        if(url.pathname==='/updates/latest.json') response.headers.set('Cache-Control','public, max-age=300');
         return response;
       }
       if (request.method === 'GET' && /^\/invite\/[a-f0-9]{32}$/.test(url.pathname)) return invitePage();
