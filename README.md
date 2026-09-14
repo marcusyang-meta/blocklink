@@ -2,7 +2,7 @@
 
 **More time for adventure.** A lightweight Minecraft Java Edition launcher built with Tauri, Rust and React. No Electron or Node runtime is required to use it.
 
-[简体中文](README.zh-CN.md) · [Website](https://blocklink-lobby.junjie-f33.workers.dev/en/) · [Downloads](https://blocklink-lobby.junjie-f33.workers.dev/en/#download) · [Report a problem](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
+[简体中文](README.zh-CN.md) · [Website](https://blocklink.jyang.dev/en/) · [Downloads](https://blocklink.jyang.dev/en/#download) · [Report a problem](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
 
 ![Blocklink game library](lobby/public/assets/launcher.png)
 

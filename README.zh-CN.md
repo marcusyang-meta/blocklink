@@ -2,7 +2,7 @@
 
 **把时间留给冒险。** 轻量的 Minecraft Java 版启动器，基于 Tauri + Rust + React，不需要 Electron 或 Node 运行时。
 
-[English](README.md) · [官网](https://blocklink-lobby.junjie-f33.workers.dev/) · [下载](https://github.com/marcusyang-meta/blocklink/releases) · [反馈问题](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
+[English](README.md) · [官网](https://blocklink.jyang.dev/) · [下载](https://github.com/marcusyang-meta/blocklink/releases) · [反馈问题](https://github.com/marcusyang-meta/blocklink/issues/new/choose)
 
 ![Blocklink 实际界面](lobby/public/assets/launcher.png)
 
@@ -18,7 +18,7 @@
 
 ## 下载与使用
 
-前往 [GitHub Releases](https://github.com/marcusyang-meta/blocklink/releases) 或 [官网](https://blocklink-lobby.junjie-f33.workers.dev/#download)。Windows 完整 ZIP 解压后直接运行 Blocklink.exe，需要 Windows 10/11 x64 与系统 WebView2。
+前往 [GitHub Releases](https://github.com/marcusyang-meta/blocklink/releases) 或 [官网](https://blocklink.jyang.dev/#download)。Windows 完整 ZIP 解压后直接运行 Blocklink.exe，需要 Windows 10/11 x64 与系统 WebView2。
 
 选择玩家档案，创建游戏或安装整合包，然后点击「开始游戏」。所需文件会自动下载。更多步骤见 [使用指南](docs/GETTING-STARTED.zh-CN.md)。重要世界请保留独立备份。
 
