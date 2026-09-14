@@ -26,8 +26,11 @@ jobs:
       - name: Validate build and release
         run: |
           set -eu
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9A-Za-z._-]+$ ]]
           test "$(gh run view "$BUILD_RUN" --json conclusion --jq .conclusion)" = success
           test "$(gh run view "$BUILD_RUN" --json name --jq .name)" = 'Build Windows, macOS and Linux'
+          test "$(gh run view "$BUILD_RUN" --json headSha --jq .headSha)" = "$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)"
           gh release view "$RELEASE_TAG" >/dev/null
       - name: Download native archives
         run: gh run download "$BUILD_RUN" --dir artifacts
