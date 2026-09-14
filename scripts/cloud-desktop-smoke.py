@@ -2,7 +2,7 @@
 import argparse,json,os,pathlib,re,subprocess,tempfile,time,urllib.request
 p=argparse.ArgumentParser();p.add_argument('binary',type=pathlib.Path);p.add_argument('--game',action='store_true');p.add_argument('--report',type=pathlib.Path,required=True);a=p.parse_args()
 report={'desktop':'not run','minecraft':'not run','platform':os.sys.platform}
-with tempfile.TemporaryDirectory(prefix='blocklink-cloud-') as temp:
+with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors=True) as temp:
  root=pathlib.Path(temp)/'data';root.mkdir();health=pathlib.Path(temp)/'ready'
  env=dict(os.environ,BLOCKLINK_UPDATE_HEALTH=str(health),WEBVIEW2_USER_DATA_FOLDER=str(pathlib.Path(temp)/'webview'))
  proc=subprocess.Popen([str(a.binary.resolve()),'--data-dir',str(root)],env=env)

@@ -1,0 +1,60 @@
+name: Verify packaged Minecraft in the cloud
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Native build run containing the package
+        required: true
+      platform:
+        type: choice
+        options: [macOS-Apple-Silicon, macOS-Intel, Windows-x64, Linux-x64]
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  game:
+    runs-on: ${{ inputs.platform == 'macOS-Apple-Silicon' && 'macos-15' || inputs.platform == 'macOS-Intel' && 'macos-15-intel' || inputs.platform == 'Windows-x64' && 'windows-latest' || 'ubuntu-22.04' }}
+    timeout-minutes: 20
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          name: Blocklink-${{ inputs.platform }}
+          path: packages
+      - name: Linux runtime dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb libgl1-mesa-dri
+      - name: Locate native payload
+        id: payload
+        shell: python
+        run: |
+          import json,pathlib,tarfile,os
+          metadata=list(pathlib.Path('packages').rglob('update-*.json'))
+          assert len(metadata)==1
+          m=json.loads(metadata[0].read_text());binary=metadata[0].parent/m['file']
+          assert binary.is_file()
+          if m['target'].startswith('darwin'):
+              with tarfile.open(binary) as archive: archive.extractall('game-check-app',filter='data')
+              binary=next(pathlib.Path('game-check-app').glob('*.app/Contents/MacOS/*'))
+          binary.chmod(0o755)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output: output.write('binary='+str(binary.resolve())+'\n')
+      - name: Verify game rendering on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a dbus-run-session -- python scripts/cloud-desktop-smoke.py "${{ steps.payload.outputs.binary }}" --game --report cloud-checks/game.json
+      - name: Verify game rendering on desktop runners
+        if: runner.os != 'Linux'
+        run: python scripts/cloud-desktop-smoke.py "${{ steps.payload.outputs.binary }}" --game --report cloud-checks/game.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Cloud-check-${{ inputs.platform }}
+          path: cloud-checks/*.json
