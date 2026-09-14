@@ -1,0 +1,21 @@
+name: Cloudflare lobby
+on: [push, pull_request]
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lobby
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm exec wrangler deploy --dry-run
+        env:
+          WRANGLER_SEND_METRICS: false

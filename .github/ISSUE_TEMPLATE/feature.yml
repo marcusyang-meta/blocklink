@@ -1,0 +1,13 @@
+name: Feature request / 功能建议
+description: Describe something that would make playing easier / 说说什么能让游玩更简单
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do? / 你希望完成什么？
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea / 你的想法

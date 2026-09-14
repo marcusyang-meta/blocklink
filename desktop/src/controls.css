@@ -1,0 +1,32 @@
+/* App controls share the same surfaces, spacing and focus treatment. */
+*{scrollbar-width:thin;scrollbar-color:#4c5561 transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#4c5561;border:2px solid transparent;background-clip:padding-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#768494;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::selection{background:#496651;color:#f2f8f3}
+button{-webkit-user-select:none;user-select:none}
+.dialog input[type=checkbox]{appearance:none;-webkit-appearance:none;width:16px;height:16px;min-width:16px;padding:0;flex:0 0 16px;background:#171c21;border:1px solid #657181;border-radius:4px;display:inline-grid;place-content:center;cursor:pointer;margin:0;vertical-align:middle}
+.dialog input[type=checkbox]:checked{background:#a9d9b7;border-color:#a9d9b7}
+.dialog input[type=checkbox]:checked::after{content:"";width:7px;height:4px;border-left:2px solid #203c29;border-bottom:2px solid #203c29;transform:rotate(-45deg) translateY(-1px)}
+.dialog input[type=checkbox]:disabled{opacity:.4;cursor:not-allowed}
+input[type=number]{appearance:textfield;-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none}
+.desktop-select{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:36px;padding:9px 10px;background:#181c21;border:1px solid #454e59;border-radius:5px;color:#e7e9ed;font-size:12px;line-height:1.4;text-align:left;cursor:pointer}
+.desktop-select>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.desktop-select>svg{color:#9ba8b7}
+.desktop-select:hover:not(:disabled){border-color:#697789;background:#20262d}
+.desktop-select[aria-expanded=true]{border-color:#a9d9b7}
+.desktop-select-menu{position:fixed;z-index:100;overflow-y:auto;overscroll-behavior:contain;background:#252b33;border:1px solid #515d6c;border-radius:7px;box-shadow:0 12px 32px #0008;padding:4px;scroll-padding-block:4px;color:#e7e9ed}
+.desktop-select-option{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:33px;padding:7px 9px;border-radius:4px;font-size:12px;line-height:1.4;cursor:pointer}
+.desktop-select-option>span{overflow-wrap:anywhere}
+.desktop-select-option.highlighted{background:#3a4651}
+.desktop-select-option[aria-selected=true]{color:#bce6c8}
+.desktop-select-option.disabled{opacity:.4;cursor:not-allowed}
+.dialog input:focus,.dialog textarea:focus,.console-input input:focus{border-color:#a9d9b7;box-shadow:0 0 0 1px #a9d9b733;outline:none}
+.dialog input[type=checkbox]:focus-visible{outline:2px solid #a9d9b7;outline-offset:3px}
+.dialog textarea{resize:vertical;min-height:96px}
+@media(forced-colors:active){.dialog input[type=checkbox]{appearance:auto}.dialog input[type=checkbox]:checked::after{display:none}.desktop-select,.desktop-select-menu{border-color:ButtonText}.desktop-select-option.highlighted{outline:1px solid Highlight}}

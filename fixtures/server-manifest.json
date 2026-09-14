@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "serverId": "22222222-2222-4222-8222-222222222222",
+  "revision": 7,
+  "publishedAt": "2026-09-12T08:00:00Z",
+  "target": "next-start",
+  "environment": {
+    "minecraft": "1.21.1",
+    "loader": {
+      "kind": "fabric",
+      "version": "0.16.10"
+    }
+  },
+  "clientLock": {
+    "sha512": "457cd7f541b9bfb8cf1e35410814147253149a367a18406a81d4795af03626d3bdfd9fb1c5175e2cf75ae0efbba3d4fa3047b41431e9d9186d6c2db344ed3576",
+    "bytes": 614
+  }
+}

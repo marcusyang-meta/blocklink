@@ -1,0 +1,49 @@
+[package]
+name = "blocklink-service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+blocklink-core = { path = "../blocklink-core" }
+blocklink-model = { path = "../blocklink-model" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+uuid.workspace = true
+anyhow = "1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rcgen = "0.13"
+rustls-pemfile = "2"
+base64 = "0.22"
+httparse = "1"
+sha1 = "0.10"
+md5 = "0.8"
+iroh = { version = "1.2", default-features = false, features = ["tls-ring"] }
+blake3 = { version = "1", features = ["pure"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "fs", "time", "sync", "macros"] }
+webrtc = "0.20.2"
+async-trait = "0.1"
+bytes = "1"
+yamux = "0.14"
+tokio-util = { version = "0.7", features = ["compat"] }
+futures-util = "0.3"
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+flate2 = "1"
+fastnbt = "2.6"
+toml = "0.9"
+fs2.workspace = true
+tar = "0.4"
+tiny_http = "0.12"
+directories = "6"
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+regex = "1"
+semver = "1"
+tempfile.workspace = true
+clap.workspace = true
+
+[[bin]]
+name = "blocklink-service"
+path = "src/main.rs"

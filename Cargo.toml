@@ -1,0 +1,25 @@
+[workspace]
+members = ["crates/blocklink-model", "crates/blocklink-core", "crates/blocklink-host", "crates/blocklink-service", "desktop/src-tauri"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4", "serde"] }
+fs2 = "0.4"
+unicode-normalization = "0.1"
+tempfile = "3"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

@@ -1,0 +1,28 @@
+name: Bug report / 问题反馈
+description: Tell us what went wrong / 描述遇到的问题
+title: '[Bug] '
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Blocklink version / 启动器版本
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: OS and architecture / 系统与架构
+      placeholder: Windows 11 x64 / macOS Apple Silicon / Ubuntu x64
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps and expected behavior / 复现步骤与预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Error details / 错误信息
+      description: Include game and loader versions if relevant. Remove tokens, invitations and personal paths from logs. / 可附游戏和加载器版本；请先移除日志中的令牌、邀请与个人路径。

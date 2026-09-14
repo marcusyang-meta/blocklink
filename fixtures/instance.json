@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "instanceId": "11111111-1111-4111-8111-111111111111",
+  "name": "共享世界 · Fabric",
+  "minecraft": "1.21.1",
+  "loader": {
+    "kind": "fabric",
+    "version": "recommended"
+  },
+  "runtime": {
+    "java": "auto",
+    "memoryMiB": 4096
+  },
+  "storage": {
+    "linkMode": "auto"
+  },
+  "mods": [
+    {
+      "modId": "example-client",
+      "sha512": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "side": "client"
+    }
+  ],
+  "server": {
+    "serverId": "22222222-2222-4222-8222-222222222222",
+    "endpoint": "https://minecraft.example.com",
+    "syncPolicy": "ask"
+  }
+}

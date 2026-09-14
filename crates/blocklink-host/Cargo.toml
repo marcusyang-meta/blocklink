@@ -1,0 +1,20 @@
+[package]
+name = "blocklink-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "blocklink"
+path = "src/main.rs"
+
+[dependencies]
+blocklink-model = { path = "../blocklink-model" }
+blocklink-core = { path = "../blocklink-core" }
+serde_json.workspace = true
+serde.workspace = true
+clap.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

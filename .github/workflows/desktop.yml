@@ -1,0 +1,78 @@
+name: Build Windows, macOS and Linux
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: Windows-x64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: Linux-x64
+          - os: macos-15
+            target: aarch64-apple-darwin
+            label: macOS-Apple-Silicon
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            label: macOS-Intel
+    runs-on: ${{ matrix.os }}
+    env:
+      BLOCKLINK_MICROSOFT_CLIENT_ID: ${{ vars.BLOCKLINK_MICROSOFT_CLIENT_ID }}
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev librsvg2-dev libayatana-appindicator3-dev libdbus-1-dev libsecret-1-dev patchelf
+      - name: Rust tools
+        run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Frontend dependencies
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+      - name: Build frontend
+        working-directory: desktop
+        run: pnpm build
+      - name: Translation checks
+        working-directory: desktop
+        run: node --test test/i18n.test.mjs
+      - name: Tests including real HTTPS pairing and process recovery
+        run: cargo +stable test --workspace --locked --target ${{ matrix.target }}
+      - name: Build headless host
+        run: cargo +stable build --release --locked -p blocklink-service -p blocklink-host --target ${{ matrix.target }}
+      - name: Package desktop
+        working-directory: desktop
+        run: pnpm tauri build --target ${{ matrix.target }}
+      - name: Test native desktop host (Windows)
+        if: runner.os == 'Windows'
+        run: python scripts/service-smoke.py target/${{ matrix.target }}/release/blocklink-desktop.exe
+      - name: Test native desktop host (Unix)
+        if: runner.os != 'Windows'
+        run: python scripts/service-smoke.py target/${{ matrix.target }}/release/blocklink-desktop
+      - name: Portable archives with licenses and checksums
+        run: python scripts/package-portable.py target/${{ matrix.target }}/release ${{ matrix.label }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Blocklink-${{ matrix.label }}
+          if-no-files-found: error
+          path: |
+            dist-packages/*
+            target/${{ matrix.target }}/release/bundle/**/*.dmg
+            target/${{ matrix.target }}/release/bundle/**/*.deb
+            target/${{ matrix.target }}/release/bundle/**/*.AppImage
+            target/${{ matrix.target }}/release/blocklink-service*
+            target/${{ matrix.target }}/release/blocklink.exe
+            target/${{ matrix.target }}/release/blocklink

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "environment": {
+    "minecraft": "1.21.1",
+    "loader": {
+      "kind": "fabric",
+      "version": "0.16.10"
+    }
+  },
+  "mods": [
+    {
+      "modId": "example-shared",
+      "version": "1.0.0",
+      "file": "example-shared-1.0.0.jar",
+      "sha512": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bytes": 4096,
+      "side": "both",
+      "source": {
+        "kind": "https",
+        "url": "https://mods.example.com/example-shared-1.0.0.jar"
+      },
+      "dependencies": []
+    }
+  ]
+}
