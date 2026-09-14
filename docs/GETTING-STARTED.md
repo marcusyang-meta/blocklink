@@ -9,6 +9,14 @@
 
 Download and extract the full Windows ZIP, then open Blocklink.exe. Choose your language in Launcher settings and select a player. Add a game or modpack and press Play; required files are downloaded automatically. The current local-player mode cannot join servers requiring authenticated accounts.
 
+## macOS / Linux 预览包 / Native previews
+
+在 [GitHub Releases](https://github.com/marcusyang-meta/blocklink/releases) 按电脑系统与芯片选择原生包。macOS 解压后打开 Blocklink.app，或使用 DMG；Linux 解压后给 Blocklink.AppImage 添加执行权限再打开，也提供 DEB。Linux 需要兼容的桌面环境和 Secret Service 凭据库。
+
+这些预览版未签名，macOS 尚未公证。构建与后台启动测试已通过，但各平台的实际 Minecraft 窗口、声音、输入和光影仍待实机验收。
+
+Choose the native package for your OS and processor on GitHub Releases. On macOS, extract the app ZIP or use the DMG. On Linux, make the extracted AppImage executable, or install the DEB. These unsigned previews passed native build and service tests; Minecraft graphics, audio, input and shader testing is still pending. macOS notarization is not configured.
+
 ## 带上已有存档 / Bring your worlds
 
 关闭原游戏，在游戏的「世界与存档」选择导入，选择世界文件夹、saves 或 .minecraft。确保目标游戏的版本、Loader 和 Mods 与原世界匹配。导入创建独立副本，原世界保留。

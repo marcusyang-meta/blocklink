@@ -9,9 +9,13 @@
 - Portable Windows archive verified with executable and third-party license notices. Published EXE SHA-256 matches the local release build.
 - Previous Windows integration checks cover game and server installation, supported loader flows, modpack imports, world migration and local multiplayer. These do not guarantee every modpack, loader version or shader will work.
 
+## Native release checks
+
+Linux x64 and Apple Silicon Mac passed the native GitHub Actions build, Rust and translation tests, desktop service startup and authenticated RPC checks. The corresponding ZIP, DMG, AppImage and DEB release assets have verified SHA-256 checksums. [Build evidence](https://github.com/marcusyang-meta/blocklink/actions/runs/34802210184).
+
 ## Not yet verified / 尚未验收
 
-- Native macOS and Linux build jobs and actual Minecraft windows, graphics, audio, input, file dialogs and credential storage still need platform-specific verification.
+- Intel Mac build completion is pending. Actual Minecraft windows, graphics, audio, input, file dialogs and credential storage still need platform-specific verification on Mac/Linux.
 - Microsoft device authorization is implemented, but Minecraft API access has not been approved. A 403 at the Minecraft endpoint is not proof of every possible underlying cause; do not claim successful authenticated game login.
 - No CurseForge online integration. Unsupported package formats are rejected rather than presented as installed.
 

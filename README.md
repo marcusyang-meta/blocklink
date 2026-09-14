@@ -26,7 +26,7 @@
 
 ## 平台状态
 
-Windows 版本已在本地测试。Linux x64、Apple Silicon 和 Intel Mac 已配置原生构建流程，但仍需检查构建结果并完成对应系统的游戏运行验收。请以各 Release 的实际附件与说明为准，详见 [平台说明](PLATFORMS.md)。
+Windows 版本已在本地测试。Linux x64 与 Apple Silicon Mac 已通过原生构建和后台启动测试，提供预览下载。Intel Mac 构建进度请查看 Actions。Mac/Linux 的游戏窗口、声音、输入和光影仍待实机验收。请以各 Release 的实际附件与说明为准，详见 [平台说明](PLATFORMS.md)。
 
 ## 开发与构建
 

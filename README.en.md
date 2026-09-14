@@ -24,7 +24,7 @@ The current local-player mode does not authenticate to online-mode servers. Micr
 
 ## Platform status
 
-Windows builds are locally tested. Native workflows are prepared for Linux x64, Apple Silicon and Intel Mac. Their builds and actual Minecraft launch behavior still need verification; code portability is not a promise that an untested package works. See [platform details](PLATFORMS.md).
+Windows builds are locally tested. Linux x64 and Apple Silicon Mac previews passed native builds and service startup tests. Check Actions for Intel Mac build progress. Minecraft graphics, audio, input and shader verification on Mac/Linux is still pending. See [platform details](PLATFORMS.md) and the actual Release attachments.
 
 ## Development
 
