@@ -11,7 +11,7 @@ permissions:
 jobs:
   client:
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       APPIMAGE_EXTRACT_AND_RUN: '1'
       LIBGL_ALWAYS_SOFTWARE: '1'
@@ -20,23 +20,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: '34818816053'
-          name: Blocklink-Linux-x64
-          path: packages
-      - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb libgl1-mesa-dri
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev libsecret-1-dev libssl-dev pkg-config xvfb libgl1-mesa-dri
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked -p blocklink-service --lib --no-run
       - name: Join isolated remote world
         env:
           BLOCKLINK_TEST_INVITATION: ${{ inputs.invitation }}
+          BLOCKLINK_TEST_RELAY_ONLY: '1'
+          BLOCKLINK_TEST_TURN_TLS_ONLY: '1'
         run: |
           echo "::add-mask::$BLOCKLINK_TEST_INVITATION"
-          binary=$(find packages -name 'Blocklink-update-Linux-x64.AppImage' -type f)
-          chmod +x "$binary"
-          xvfb-run -a dbus-run-session -- python scripts/cloud-desktop-smoke.py "$binary" --join --report cloud-checks/multiplayer.json
+          mkdir -p cloud-checks
+          set -o pipefail
+          xvfb-run -a dbus-run-session -- cargo test --locked -p blocklink-service --lib lobby::world_tests::cloud_client_enters_remote_world -- --exact --ignored --nocapture 2>&1 | tee cloud-checks/multiplayer.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Cloud-check-multiplayer
-          path: cloud-checks/*.json
+          path: cloud-checks/*

@@ -111,12 +111,14 @@ pub(super) struct Session {
     cancelled: tokio::sync::watch::Sender<bool>,
     invitation: Mutex<Option<String>>,
     serving: Mutex<HashMap<String, JoinHandle<()>>>,
+    candidate_tasks: Mutex<HashMap<String, JoinHandle<()>>>,
 }
 impl Session {
     fn status(&self) -> Value {
         json!({"id":self.instance_id,"roomId":self.room_id,"host":self.host,"connected":self.alive.load(Ordering::Relaxed),"room":self.view.lock().unwrap().clone(),"invitation":self.invitation.lock().unwrap().clone(),"address":self.bridge.lock().unwrap().as_ref().map(|(port,_)|format!("127.0.0.1:{port}"))})
     }
     async fn shutdown(&self) {
+        for (_, task) in self.candidate_tasks.lock().unwrap().drain() { task.abort(); }
         self.alive.store(false, Ordering::Relaxed);
         self.cancelled.send_replace(true);
         self.mux.lock().await.take();
@@ -170,6 +172,14 @@ impl Session {
                 })
             })
             .collect::<Result<_>>()?;
+        #[cfg(test)]
+        let ice: Vec<RTCIceServer> = if std::env::var("BLOCKLINK_TEST_TURN_TLS_ONLY").as_deref() == Ok("1") {
+            ice.into_iter().filter_map(|mut s| {
+                s.urls.retain(|u| u.starts_with("turns:") && u.contains(":443"));
+                if s.urls.is_empty() { None } else { Some(s) }
+            }).collect()
+        } else { ice };
+        #[cfg(test)] eprintln!("ICE configured URLs: {}", ice.iter().map(|s|s.urls.len()).sum::<usize>());
         let (tx, mut rx) = mpsc::channel::<Value>(128);
         let session = Arc::new(Self {
             base,
@@ -187,6 +197,7 @@ impl Session {
             cancelled: tokio::sync::watch::channel(false).0,
             invitation: Mutex::new(None),
             serving: Mutex::new(HashMap::new()),
+            candidate_tasks: Mutex::new(HashMap::new()),
         });
         let weak = Arc::downgrade(&session);
         tokio::spawn(async move {
@@ -218,13 +229,16 @@ impl Session {
                                                         let mut pcs = session.pcs.lock().await;
                                                         let removed: Vec<_> = pcs.keys().filter(|id|!ids.contains(id)).cloned().collect();
                                                         for id in removed {if let Some(task)=session.serving.lock().unwrap().remove(&id){task.abort();}
+                if let Some(task)=session.candidate_tasks.lock().unwrap().remove(&id){task.abort();}
                 if let Some(pc) = pcs.remove(&id) {let _ = pc.close().await;}}
                                                     }
                                                 }
                                                 Some("closed" | "host-offline") => break,
                                                 Some("signal") => {
-                                                    let session = session.clone(); let engine = engine.clone();
-                                                    tokio::spawn(async move {if let Err(error) = session.signal(engine, value).await {#[cfg(test)] eprintln!("Lobby signal error: {error:#}"); *session.view.lock().unwrap() = json!({"error":error.to_string()});}});
+                                                    if let Err(error) = session.signal(engine.clone(), value).await {
+                                                        #[cfg(test)] eprintln!("Lobby signal error: {error:#}");
+                                                        *session.view.lock().unwrap() = json!({"error":error.to_string()});
+                                                    }
                                                 }
                                                 _ => {}
                                             }
@@ -267,17 +281,35 @@ impl Session {
             drop(peers);
             pc.set_remote_description(serde_json::from_value(value["payload"].clone())?)
                 .await?;
-            let answer = rtc::description(&pc, gathered, false).await?;
+            let answer = rtc::description(&pc, false).await?;
             self.tx
                 .send(json!({"type":"signal","to":from,"kind":"answer","payload":answer}))
                 .await?;
+            self.forward_candidates(from, gathered);
         } else if !self.host && from == "host" && value["kind"] == "answer" {
             if let Some(pc) = self.pcs.lock().await.get("host").cloned() {
                 pc.set_remote_description(serde_json::from_value(value["payload"].clone())?)
                     .await?;
             }
+        } else if value["kind"] == "ice" && (self.host || from == "host") {
+            if let Some(pc) = self.pcs.lock().await.get(from).cloned() {
+                pc.add_ice_candidate(serde_json::from_value(value["payload"].clone())?).await?;
+            }
         }
         Ok(())
+    }
+    fn forward_candidates(&self, peer: &str, mut candidates: mpsc::Receiver<Value>) {
+        let tx = self.tx.clone();
+        let to = peer.to_owned();
+        let mut cancelled = self.cancelled.subscribe();
+        let task = tokio::spawn(async move {
+            loop {
+                let candidate = tokio::select! { _ = cancelled.changed() => break, value = candidates.recv() => value };
+                let Some(candidate) = candidate else { break };
+                if tx.send(json!({"type":"signal","to":to,"kind":"ice","payload":candidate})).await.is_err() { break; }
+            }
+        });
+        if let Some(old) = self.candidate_tasks.lock().unwrap().insert(peer.into(), task) { old.abort(); }
     }
     async fn initiate(&self) -> Result<()> {
         let (pc, gathered, _channels) =
@@ -285,12 +317,13 @@ impl Session {
         // Establish SCTP before later opening one channel for each request.
         let control = pc.create_data_channel("blocklink/ready", None).await?;
         self.pcs.lock().await.insert("host".into(), pc.clone());
-        let offer = rtc::description(&pc, gathered, true).await?;
+        let offer = rtc::description(&pc, true).await?;
         #[cfg(test)]
         eprintln!("offer gathered");
         self.tx
             .send(json!({"type":"signal","kind":"offer","payload":offer}))
             .await?;
+        self.forward_candidates("host", gathered);
         let mux = rtc::client(control);
         let mut io = mux.open().await?;
         *self.mux.lock().await = Some(mux);

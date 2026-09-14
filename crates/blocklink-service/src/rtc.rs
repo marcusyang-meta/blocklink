@@ -8,7 +8,7 @@ use tokio_util::compat::{Compat, FuturesAsyncReadCompatExt, TokioAsyncReadCompat
 use webrtc::data_channel::{DataChannel, DataChannelEvent};
 use webrtc::peer_connection::{
     PeerConnection, PeerConnectionBuilder, PeerConnectionEventHandler, RTCConfigurationBuilder,
-    RTCIceGatheringState, RTCIceServer, RTCIceTransportPolicy,
+    RTCIceServer, RTCIceTransportPolicy, RTCPeerConnectionIceEvent,
 };
 pub(super) type Io = Compat<yamux::Stream>;
 pub(super) struct Mux(
@@ -67,7 +67,8 @@ pub(super) fn client(dc: Arc<dyn DataChannel>) -> Mux {
 }
 
 pub(super) struct Handler {
-    gathered: watch::Sender<bool>,
+    candidates: mpsc::Sender<Value>,
+    _transports: Vec<turn_transport::Guard>,
     incoming: mpsc::Sender<Arc<dyn DataChannel>>,
 }
 #[async_trait::async_trait]
@@ -80,9 +81,10 @@ impl PeerConnectionEventHandler for Handler {
         eprintln!("RTC state: {state}");
         let _ = state;
     }
-    async fn on_ice_gathering_state_change(&self, state: RTCIceGatheringState) {
-        if state == RTCIceGatheringState::Complete {
-            let _ = self.gathered.send(true);
+    async fn on_ice_candidate(&self, event: RTCPeerConnectionIceEvent) {
+        #[cfg(test)] eprintln!("ICE candidate gathered");
+        if let Ok(candidate) = event.candidate.to_json() {
+            if let Ok(value) = serde_json::to_value(candidate) { let _ = self.candidates.try_send(value); }
         }
     }
     async fn on_data_channel(&self, dc: Arc<dyn DataChannel>) {
@@ -101,11 +103,13 @@ pub(super) async fn connection(
     relay_only: bool,
 ) -> Result<(
     Arc<dyn PeerConnection>,
-    watch::Receiver<bool>,
+    mpsc::Receiver<Value>,
     mpsc::Receiver<Arc<dyn DataChannel>>,
 )> {
-    let (gathered, receiver) = watch::channel(false);
+    let (candidates, receiver) = mpsc::channel(256);
     let (incoming, channels) = mpsc::channel(16);
+    let (servers, transports) = turn_transport::prepare(servers).await?;
+    let addresses = if transports.is_empty() { vec!["0.0.0.0:0"] } else { vec!["0.0.0.0:0", "127.0.0.1:0"] };
     let config = RTCConfigurationBuilder::default()
         .with_ice_servers(servers)
         .with_ice_transport_policy(if relay_only {
@@ -116,16 +120,15 @@ pub(super) async fn connection(
         .build();
     let pc = PeerConnectionBuilder::new()
         .with_configuration(config)
-        .with_handler(Arc::new(Handler { gathered, incoming }))
+        .with_handler(Arc::new(Handler { candidates, incoming, _transports: transports }))
         .with_data_channel_send_buffer_limit(256 * 1024)
-        .with_udp_addrs(vec!["0.0.0.0:0"])
+        .with_udp_addrs(addresses)
         .build()
         .await?;
     Ok((Arc::new(pc), receiver, channels))
 }
 pub(super) async fn description(
     pc: &Arc<dyn PeerConnection>,
-    mut gathered: watch::Receiver<bool>,
     offer: bool,
 ) -> Result<Value> {
     let sdp = if offer {
@@ -134,14 +137,7 @@ pub(super) async fn description(
         pc.create_answer(None).await?
     };
     pc.set_local_description(sdp).await?;
-    tokio::time::timeout(Duration::from_secs(25), async {
-        while !*gathered.borrow() {
-            gathered.changed().await?;
-        }
-        Ok::<_, anyhow::Error>(())
-    })
-    .await
-    .context("等待网络候选地址超时")??;
+    // Trickle candidates through signaling; a stalled endpoint cannot hold up SDP.
     Ok(serde_json::to_value(
         pc.local_description().await.context("连接描述尚未生成")?,
     )?)
@@ -218,6 +214,40 @@ pub(super) async fn write_frame(io: &mut Io, value: &Value) -> Result<()> {
     io.write_u32(bytes.len() as u32).await?;
     io.write_all(&bytes).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::ensure;
+    #[tokio::test]
+    async fn unreachable_stun_does_not_block_negotiation_or_data() -> Result<()> {
+        let sink = tokio::net::UdpSocket::bind("127.0.0.1:0").await?;
+        let servers = vec![RTCIceServer { urls: vec![format!("stun:{}",sink.local_addr()?)], ..Default::default() }];
+        let (a,mut ac,_)=connection(servers.clone(),false).await?;
+        let (b,mut bc,mut incoming)=connection(servers,false).await?;
+        let result=tokio::time::timeout(Duration::from_secs(20), async {
+            let dc=a.create_data_channel("regression",None).await?;
+            let offer=tokio::time::timeout(Duration::from_secs(2),description(&a,true)).await??;
+            b.set_remote_description(serde_json::from_value(offer)?).await?;
+            let answer=tokio::time::timeout(Duration::from_secs(2),description(&b,false)).await??;
+            a.set_remote_description(serde_json::from_value(answer)?).await?;
+            let aa=a.clone();let bb=b.clone();
+            let ab=tokio::spawn(async move {while let Some(c)=ac.recv().await {let _=bb.add_ice_candidate(serde_json::from_value(c).unwrap()).await;}});
+            let ba=tokio::spawn(async move {while let Some(c)=bc.recv().await {let _=aa.add_ice_candidate(serde_json::from_value(c).unwrap()).await;}});
+            let transfer=async {
+                let mut left=stream(dc);
+                let mut right=stream(incoming.recv().await.context("Missing remote channel")?);
+                let expected=vec![0x5a;256*1024];let payload=expected.clone();
+                let send=async {left.write_all(&payload).await?;Ok::<_,anyhow::Error>(())};
+                let receive=async {let mut received=vec![0;expected.len()];right.read_exact(&mut received).await?;ensure!(received==expected,"Corrupt data");Ok::<_,anyhow::Error>(())};
+                tokio::try_join!(send,receive)?;Ok::<_,anyhow::Error>(())
+            }.await;
+            ab.abort();ba.abort();transfer
+        }).await;
+        a.close().await?;b.close().await?;
+        result?
+    }
 }
 pub(super) async fn read_frame(io: &mut Io) -> Result<Value> {
     let size = io.read_u32().await? as usize;

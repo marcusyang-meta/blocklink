@@ -12,6 +12,7 @@ mod peer;
 mod quilt;
 mod remote;
 mod rtc;
+mod turn_transport;
 mod trash;
 mod worlds;
 mod preflight;

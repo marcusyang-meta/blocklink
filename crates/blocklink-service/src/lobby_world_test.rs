@@ -3,6 +3,38 @@ use super::*;
 use anyhow::ensure;
 
 #[test]
+#[ignore = "requires temporary isolated invitation and cloud Xvfb"]
+fn cloud_client_enters_remote_world() -> Result<()> {
+    ensure!(test_relay_only(), "Cloud acceptance must force relay");
+    ensure!(std::env::var("BLOCKLINK_TEST_TURN_TLS_ONLY").as_deref()==Ok("1"), "Cloud acceptance must force TLS");
+    let root=tempfile::tempdir()?;
+    let engine=Arc::new(Engine::new(root.path())?);
+    let report: game::Reporter=Arc::new(|m|eprintln!("{m}"));
+    engine.execute("offline-profile",&json!({"name":"CloudCheck"}),report.clone())?;
+    let joined=join(&engine,&json!({"invitation":std::env::var("BLOCKLINK_TEST_INVITATION")?,"name":"TLS acceptance"}),&report)?;
+    let id=field(&joined,"id")?;
+    let outcome=(|| -> Result<()> {
+        engine.execute("launch",&json!({"id":id}),report.clone())?;
+        let log=engine.ws.instance_dir(id)?.join("game/logs/latest.log");
+        let deadline=std::time::Instant::now()+Duration::from_secs(150);
+        let joined=regex::Regex::new(r"Loaded \d+ advancements")?;
+        loop {
+            let text=fs::read_to_string(&log).unwrap_or_default();
+            if joined.is_match(&text) {break;}
+            ensure!(std::time::Instant::now()<deadline,"Client did not receive world advancements: {}",text.chars().rev().take(1500).collect::<String>().chars().rev().collect::<String>());
+            ensure!(engine.is_running(id),"Minecraft exited before joining");
+            std::thread::sleep(Duration::from_secs(1));
+        }
+        eprintln!("PASS: real client received world data over forced TLS relay");
+        std::thread::sleep(Duration::from_secs(85));
+        Ok(())
+    })();
+    let _=engine.execute("stop",&json!({"id":id,"force":true}),report);
+    let _=close(&engine,id);
+    outcome
+}
+
+#[test]
 #[ignore = "requires prepared isolated directory and explicit offline acceptance approval"]
 fn real_game_enters_world_over_turn() -> Result<()> {
     ensure!(
@@ -70,6 +102,7 @@ fn real_game_enters_world_over_turn() -> Result<()> {
             wait_log(&dir.join("latest.log"), "players online: CloudCheck", 15)?;
             eprintln!("PASS: remote real Minecraft client joined through forced TURN; player list confirmed");
             std::thread::sleep(Duration::from_secs(60));
+            ensure!(!fs::read_to_string(dir.join("latest.log"))?.contains("CloudCheck lost connection"), "Player disconnected before room closure");
             close(&engine, id)?;
             wait_log(&dir.join("latest.log"), "CloudCheck lost connection", 30)?;
             eprintln!("PASS: room closure disconnected remote real Minecraft client");
@@ -124,6 +157,9 @@ fn real_game_enters_world_over_turn() -> Result<()> {
 fn wait_log(path: &Path, marker: &str, seconds: u64) -> Result<()> {
     let deadline = std::time::Instant::now() + Duration::from_secs(seconds);
     loop {
+        if let Ok(path) = std::env::var("BLOCKLINK_WORLD_REMOTE_INVITE_FILE") {
+            ensure!(!PathBuf::from(path).with_extension("cancel").exists(), "Acceptance cancelled; cleaning up isolated host");
+        }
         if fs::read_to_string(path)
             .unwrap_or_default()
             .contains(marker)
