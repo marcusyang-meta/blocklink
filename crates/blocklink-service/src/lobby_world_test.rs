@@ -31,6 +31,7 @@ fn cloud_client_enters_remote_world() -> Result<()> {
         eprintln!("PASS: real client received world data over forced TLS relay");
         if std::env::var("BLOCKLINK_TEST_GAMEPLAY").as_deref()==Ok("1") {
             let status=Command::new("python3").arg("scripts/cloud-gameplay-input.py")
+                .current_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
                 .env("BLOCKLINK_TEST_GAME_LOG",&log)
                 .env("BLOCKLINK_TEST_GAME_PID",launched["pid"].to_string()).status()?;
             ensure!(status.success(),"Cloud keyboard/mouse acceptance failed");
@@ -39,9 +40,10 @@ fn cloud_client_enters_remote_world() -> Result<()> {
         Ok(())
     })();
     if std::env::var("GITHUB_ACTIONS").as_deref()==Ok("true") {
-        let _=fs::create_dir_all("cloud-checks");
-        let _=fs::copy(engine.ws.instance_dir(id)?.join("game/logs/latest.log"),"cloud-checks/minecraft.log");
-        let _=Command::new("scrot").arg("cloud-checks/minecraft.png").status();
+        let evidence=Path::new(env!("CARGO_MANIFEST_DIR")).join("../../cloud-checks");
+        let _=fs::create_dir_all(&evidence);
+        let _=fs::copy(engine.ws.instance_dir(id)?.join("game/logs/latest.log"),evidence.join("minecraft.log"));
+        let _=Command::new("scrot").arg(evidence.join("minecraft.png")).status();
     }
     let _=engine.execute("stop",&json!({"id":id,"force":true}),report);
     let _=close(&engine,id);
