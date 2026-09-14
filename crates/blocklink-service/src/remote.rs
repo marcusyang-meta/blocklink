@@ -312,6 +312,7 @@ pub(super) fn sync(
 ) -> Result<()> {
     let d = parse(invitation)?;
     let mut lock = fetch_lock(&d)?;
+    if lock.content.is_some(){bail!("This room shares configuration. Use a Blocklink lobby invitation to synchronize it.")}
     i.accepts(&lock)?;
     lock.mods.retain(|m| m.side != Side::Server);
     let c = client(&d)?;

@@ -236,7 +236,12 @@ pub struct Lockfile {
     pub schema_version: u32,
     pub environment: Environment,
     pub mods: Vec<Artifact>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content: Option<ContentBundle>,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ContentBundle {pub sha512: String, pub bytes: u64}
 impl Lockfile {
     pub fn validate(&self) -> Result<()> {
         require(
@@ -244,6 +249,7 @@ impl Lockfile {
             "Unsupported lockfile schemaVersion",
         )?;
         self.environment.validate()?;
+        if let Some(content)=&self.content {validate_hash(&content.sha512)?;require(content.bytes>0&&content.bytes<=268_435_456,"Invalid content bundle size")?;}
         require(self.mods.len() <= 4096, "Too many Mods")?;
         require(
             !matches!(self.environment.loader, Loader::Vanilla) || self.mods.is_empty(),

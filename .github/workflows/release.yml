@@ -42,10 +42,14 @@ jobs:
           release = json.loads(subprocess.check_output(['gh', 'release', 'view', tag, '--json', 'assets']))
           existing = {asset['name'] for asset in release['assets']}
           for file in sorted(pathlib.Path('artifacts').rglob('*')):
-              if not file.is_file() or not (file.name.startswith('Blocklink-') and file.suffix == '.zip' or file.suffix in ('.sha256', '.AppImage', '.dmg', '.deb')):
+              if not file.is_file() or not (file.name.startswith('Blocklink-update-') or file.name.startswith('Blocklink-') and file.suffix == '.zip' or file.suffix in ('.sha256', '.AppImage', '.dmg', '.deb')):
                   continue
               # Keep previously published binaries and their matching checksum together.
               if file.name in existing or file.name.removesuffix('.sha256') in existing:
                   print('Keeping existing release asset:', file.name)
                   continue
               subprocess.run(['gh', 'release', 'upload', tag, str(file)], check=True)
+      - name: Assemble signed update feed
+        run: python scripts/update-feed.py artifacts "$RELEASE_TAG"
+      - name: Attach update feed
+        run: gh release upload "$RELEASE_TAG" latest.json

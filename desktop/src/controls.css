@@ -30,3 +30,5 @@ input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none}
 .dialog input[type=checkbox]:focus-visible{outline:2px solid #a9d9b7;outline-offset:3px}
 .dialog textarea{resize:vertical;min-height:96px}
 @media(forced-colors:active){.dialog input[type=checkbox]{appearance:auto}.dialog input[type=checkbox]:checked::after{display:none}.desktop-select,.desktop-select-menu{border-color:ButtonText}.desktop-select-option.highlighted{outline:1px solid Highlight}}
+
+.app-updates small{display:block;padding:8px;overflow-wrap:anywhere}.update-notice{padding:12px;background:var(--panel,#17221c);border-radius:12px}.update-notice p{font-size:12px;line-height:1.5}.app-updates progress{width:100%}

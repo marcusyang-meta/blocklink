@@ -494,6 +494,7 @@ pub(super) fn sync(
     let peer = existing(engine)?;
     report("通过加密联机连接检查服务器 Mods".into());
     let mut target = peer.manifest(&d)?;
+    if target.content.is_some(){bail!("This room shares configuration. Use a Blocklink lobby invitation to synchronize it.")}
     i.accepts(&target)?;
     target.mods.retain(|m| m.side != Side::Server);
     for m in &target.mods {

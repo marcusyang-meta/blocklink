@@ -597,5 +597,20 @@
   "安装游戏资源": "Installing game assets",
   "同步完成": "Sync complete",
   "正在安装": "Installing",
-  "正在下载": "Downloading"
+  "正在下载": "Downloading",
+  "升级到所选版本": "Upgrade to selected version",
+  "升级会创建新版并复制存档；旧版保留。新版使用作者配置，暂只迁移同一 Minecraft 版本的存档。": "Upgrades create a new copy with your worlds and keep the old version. The new copy uses the author's settings. World migration currently requires the same Minecraft version.",
+  "导出玩法": "Export modpack",
+  "导出为 .mrpack": "Export as .mrpack",
+  "包含模组、配置、脚本、资源包和光影，不包含存档和账户。分享前请检查配置中的私人信息，并确认内容允许再分发。": "Includes mods, configuration, scripts, resource packs and shaders. Worlds and accounts are excluded. Check configurations for private information and confirm redistribution permission before sharing.",
+  "已添加导出任务，可在任务与下载查看结果。": "Export queued. See Tasks & downloads for the result.",
+  "同步配置与脚本": "Sync configuration and scripts",
+  "向朋友发布 config、defaultconfigs、kubejs 和 scripts。请先移除其中的密码或私人信息；发布后，朋友启动前会自动同步。": "Share config, defaultconfigs, kubejs and scripts with friends. Remove passwords and private information first. Published files sync automatically before friends launch.",
+  "已经是最新版本": "You are up to date",
+  "更新完成，正在重新打开…": "Update installed. Restarting…",
+  "检查启动器更新": "Check for app updates",
+  "新版本 {0}": "Version {0} is available",
+  "完成下载后将重新打开启动器，请先结束游戏和开服。": "Blocklink will restart after downloading. Finish your games and stop hosted servers first.",
+  "下载并更新": "Download and update",
+  "下载更新": "Downloading update"
 }

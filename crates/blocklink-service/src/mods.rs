@@ -14,6 +14,7 @@ use std::{
 };
 pub fn lock(ws: &Workspace, i: &Instance) -> Result<Lockfile> {
     Ok(ws.read_lock(&i.instance_id)?.unwrap_or(Lockfile {
+        content: None,
         schema_version: 1,
         environment: Environment {
             minecraft: i.minecraft.clone(),

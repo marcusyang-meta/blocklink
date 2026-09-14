@@ -40,6 +40,7 @@ fn fixture(w: &Workspace, path: &Path, name: &str, body: &str) -> Artifact {
 }
 fn lock(m: Artifact) -> Lockfile {
     Lockfile {
+        content: None,
         schema_version: 1,
         environment: Environment {
             minecraft: "1.21.1".into(),

@@ -64,6 +64,12 @@ jobs:
         run: python scripts/service-smoke.py target/${{ matrix.target }}/release/blocklink-desktop
       - name: Portable archives with licenses and checksums
         run: python scripts/package-portable.py target/${{ matrix.target }}/release ${{ matrix.label }}
+      - name: Sign updater payloads
+        if: github.event_name != 'pull_request'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: python scripts/sign-updates.py target/${{ matrix.target }}/release ${{ matrix.label }}
       - uses: actions/upload-artifact@v4
         with:
           name: Blocklink-${{ matrix.label }}

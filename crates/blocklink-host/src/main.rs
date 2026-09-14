@@ -193,6 +193,7 @@ fn run(cli: Cli) -> blocklink_core::Result<()> {
         } => {
             let intent = workspace.instance(&instance)?;
             let mut lock = workspace.read_lock(&instance)?.unwrap_or(Lockfile {
+                content: None,
                 schema_version: 1,
                 environment: Environment {
                     minecraft: intent.minecraft.clone(),

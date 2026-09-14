@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Blocklink",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "app.blocklink.launcher",
   "build": {
     "frontendDist": "../dist",
@@ -38,5 +38,13 @@
     "resources": [
       "notices/"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZFMTZCMEU1NkQzRDMzRUMKUldUc016MXQ1YkFXYnZXTFQ4d1ZqUEEwcjlSZkpPS1JHVENKQXhXRWc2UWx6OUpsNlRaaFdoVE8K",
+      "endpoints": [
+        "https://blocklink.jyang.dev/updates/latest.json"
+      ]
+    }
   }
 }

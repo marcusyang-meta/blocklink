@@ -20,6 +20,7 @@ mod auto_launch;
 mod home;
 mod transfers;
 mod packs;
+mod content;
 mod mod_catalog;
 use anyhow::{bail, Context, Result};
 use blocklink_core::Workspace;
@@ -52,6 +53,7 @@ fn private_dir(root: &Path) -> Result<()> {
     Ok(())
 }
 struct Engine {
+    shutting_down: std::sync::atomic::AtomicBool,
     ws: Workspace,
     settings: Mutex<Value>,
     jobs: Mutex<Vec<Value>>,
@@ -67,6 +69,7 @@ impl Engine {
         let ws = Workspace::open(root)?;
         ws.recover_all()?;
         mods::recover_environments(&ws)?;
+        for instance in ws.instances()? {content::recover(&ws.instance_dir(&instance.instance_id)?)?;}
         let mut settings = if root.join("settings.json").exists() {
             read_json(&root.join("settings.json"))?
         } else {
@@ -83,6 +86,7 @@ impl Engine {
         trash::reconcile(&ws, &mut settings)?;
         write_json(&root.join("settings.json"), &settings)?;
         Ok(Self {
+            shutting_down: std::sync::atomic::AtomicBool::new(false),
             ws,
             settings: Mutex::new(settings),
             jobs: Mutex::new(vec![]),
@@ -165,6 +169,7 @@ impl Engine {
         let id = uuid::Uuid::new_v4().to_string();
         {
             let mut jobs = self.jobs.lock().unwrap();
+            if self.shutting_down.load(std::sync::atomic::Ordering::SeqCst){jobs.push(json!({"id":id,"action":action,"status":"error","message":"The launcher is restarting for an update"}));return json!({"jobId":id});}
             if jobs.len() > 80 {
                 jobs.retain(|v| v["status"] == "running" || v["status"] == "queued");
             }
@@ -247,6 +252,7 @@ impl Engine {
             }
         }
         target.validate()?;
+        content::apply(self,&i.instance_id,target.content.as_ref())?;
         mods::apply(&self.ws, i, &target)?;
         report("服务器 Mod 已同步".into());
         Ok(())
@@ -277,6 +283,7 @@ impl Engine {
             }
             return remote::join(self, p, &report);
         }
+        if action=="pack-export" {return packs::export(self,p,report);}
         if ["pack-install","pack-import"].contains(&action){return packs::install(self,p,report);}
         if action == "create" {
             if p["server"] == true && !(1024..=65535).contains(&p["port"].as_u64().unwrap_or(25565))
@@ -400,6 +407,7 @@ impl Engine {
                     c["port"] = json!(port);
                     c["javaPath"] = json!(p["javaPath"].as_str().unwrap_or(""));
                     c["serverId"] = json!(binding);
+                    if server && p["shareContent"].is_boolean(){c["shareContent"]=p["shareContent"].clone();}
                 }
                 write_json(&dir.join("instance.json"), &i)?;
                 self.save_settings()?;
@@ -464,7 +472,8 @@ impl Engine {
                     bail!("只有托管服务器可以发布环境")
                 };
                 self.idle(id)?;
-                let lock = mods::lock(&self.ws, &i)?;
+                let mut lock = mods::lock(&self.ws, &i)?;
+                lock.content=content::publish(self,id)?;
                 if !lock.mods.is_empty() {
                     self.ws.verify_instance(id)?;
                 }
@@ -552,7 +561,8 @@ impl Engine {
                         lines.push(format!("level-name={folder}"));
                     }
                     fs::write(props, lines.join("\n") + "\n")?;
-                    let lock = mods::lock(&self.ws, &i)?;
+                    let mut lock = mods::lock(&self.ws, &i)?;
+                    lock.content=content::publish(self,id)?;
                     write_json(&dir.join("running-lock.json"), &lock)?;
                     write_json(&dir.join("published.json"), &lock)?;
                     if let Some(file) = installed["serverArgsFile"].as_str() {
@@ -683,6 +693,14 @@ impl Engine {
         }
     }
     fn dispatch(self: &Arc<Self>, action: &str, p: Value) -> Result<Value> {
+        if self.shutting_down.load(std::sync::atomic::Ordering::SeqCst){bail!("The launcher is restarting for an update")}
+        if action=="prepare-app-update" {
+            let _gate=self.gate.try_lock().map_err(|_|anyhow::anyhow!("Wait for current tasks to finish before updating"))?;
+            let jobs=self.jobs.lock().unwrap();
+            if jobs.iter().any(|j|j["status"]=="queued"||j["status"]=="running")||self.ws.instances()?.iter().any(|i|self.is_running(&i.instance_id)){bail!("Close running games and servers and finish downloads before updating")}
+            self.shutting_down.store(true,std::sync::atomic::Ordering::SeqCst);
+            return Ok(json!({"ready":true}));
+        }
         if (action == "remote-join"
             && p["invitation"]
                 .as_str()
@@ -838,7 +856,7 @@ impl Engine {
             "lobby-create" | "offline-profile" | "remote-join" | "create" | "settings"
             | "shader-check" | "shader-apply" | "shader-select" | "shader-restore"
             | "logout" | "install" | "configure" | "mod-add" | "mod-local" | "mod-remove" | "mod-compatibility-check" | "mod-update-check" | "mod-update-apply" | "mod-update-restore" | "mod-toggle"
-            | "verify" | "sync" | "publish" | "launch" | "duplicate" | "world-import" | "pack-install" | "pack-import"
+            | "verify" | "sync" | "publish" | "launch" | "duplicate" | "world-import" | "pack-install" | "pack-import" | "pack-export"
             | "world-backup" | "world-backup-restore" | "world-deploy" | "world-activate" | "instance-delete" | "instance-restore" => {
                 Ok(self.job(action.into(), p))
             }
@@ -873,7 +891,8 @@ pub fn serve(root: PathBuf) -> Result<()> {
         &root.join("service.json"),
         &json!({"port":port,"token":token,"pid":std::process::id()}),
     )?;
-    for mut req in server.incoming_requests() {
+    while !engine.shutting_down.load(std::sync::atomic::Ordering::SeqCst) {
+        let Some(mut req)=server.recv_timeout(Duration::from_millis(500))? else{continue};
         let auth = req
             .headers()
             .iter()
@@ -977,6 +996,11 @@ fn loader_versions(kind: &str, mc: &str) -> Result<Value> {
 }
 #[cfg(test)]mod job_control_tests {
  use super::*;
+ #[test]fn updater_refuses_busy_service_and_rejects_late_jobs()->Result<()>{
+  let temp=tempfile::tempdir()?;let e=Arc::new(Engine::new(temp.path())?);
+  e.jobs.lock().unwrap().push(json!({"id":"busy","status":"running"}));assert!(e.dispatch("prepare-app-update",json!({})).is_err());assert!(!e.shutting_down.load(std::sync::atomic::Ordering::SeqCst));
+  e.jobs.lock().unwrap().clear();assert_eq!(e.dispatch("prepare-app-update",json!({}))?["ready"],true);assert!(e.dispatch("status",json!({})).is_err());let job=e.job("create".into(),json!({}));assert!(e.jobs.lock().unwrap().iter().any(|j|j["id"]==job["jobId"]&&j["status"]=="error"));Ok(())
+ }
  #[test]fn cancelled_queued_job_can_retry_once()->Result<()> {
   let temp=tempfile::tempdir()?;let e=Arc::new(Engine::new(temp.path())?);let gate=e.gate.lock().unwrap();
   let first=e.job("install".into(),json!({"id":uuid::Uuid::new_v4().to_string()}));let id=field(&first,"jobId")?;

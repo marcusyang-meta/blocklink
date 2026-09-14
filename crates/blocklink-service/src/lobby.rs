@@ -472,6 +472,13 @@ pub(super) fn sync(
     let mut target = runtime().block_on(session.manifest())?;
     i.accepts(&target)?;
     target.mods.retain(|m| m.side != Side::Server);
+    if let Some(bundle)=&target.content {
+        if engine.ws.verify_blob(&bundle.sha512,bundle.bytes).is_err(){
+            report("同步服务器配置与脚本".into());let temp=tempfile::NamedTempFile::new_in(engine.ws.root().join("downloads"))?;
+            runtime().block_on(async{let mut io=session.request("blob",Some(&bundle.sha512)).await?;io.shutdown().await?;let mut out=tokio::fs::File::from_std(temp.reopen()?);let count=tokio::time::timeout(Duration::from_secs(300),tokio::io::copy(&mut io.take(bundle.bytes+1),&mut out)).await??;out.flush().await?;if count!=bundle.bytes{bail!("Shared content length mismatch")};Ok::<_,anyhow::Error>(())})?;
+            if hash_file(temp.path(),"sha512")?!=bundle.sha512{bail!("Shared content checksum mismatch")};engine.ws.import_jar(temp.path())?;
+        }
+    }
     for artifact in &target.mods {
         if engine
             .ws
@@ -515,6 +522,7 @@ pub(super) fn sync(
         }
     }
     target.validate()?;
+    content::apply(engine,&i.instance_id,target.content.as_ref())?;
     mods::apply(&engine.ws, i, &target)?;
     Ok(())
 }
@@ -566,6 +574,8 @@ mod tests {
         zip.write_all(&vec![42; 2 * 1024 * 1024])?;
         zip.finish()?;
         mods::local(&host.ws, &instance, &jar, true)?;
+        host.settings.lock().unwrap()["instances"][id]["shareContent"]=json!(true);
+        let shared=host.ws.instance_dir(id)?.join("game/config");fs::create_dir_all(&shared)?;fs::write(shared.join("lobby-test.toml"),b"version = 1")?;
         host.execute("publish", &json!({"id":id}), report.clone())?;
         let test_base =
             std::env::var("BLOCKLINK_TEST_LOBBY_URL").unwrap_or("http://127.0.0.1:8787/".into());
@@ -599,6 +609,8 @@ mod tests {
         let ci = client.ws.instance(field(&result, "id")?)?;
         client.ws.verify_instance(&ci.instance_id)?;
         assert_eq!(mods::lock(&client.ws, &ci)?.mods.len(), 1);
+        let received=client.ws.instance_dir(&ci.instance_id)?.join("game/config/lobby-test.toml");assert_eq!(fs::read(&received)?,b"version = 1");
+        fs::write(shared.join("lobby-test.toml"),b"version = 2")?;host.execute("publish",&json!({"id":id}),report.clone())?;sync(&client,&ci,&invitation,&report)?;assert_eq!(fs::read(&received)?,b"version = 2");
         let cp = client.lobby.lock().unwrap()[&ci.instance_id].clone();
         assert!(runtime()
             .block_on(cp.request("blob", Some(&"0".repeat(128))))

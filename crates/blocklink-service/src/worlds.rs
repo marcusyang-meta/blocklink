@@ -126,7 +126,7 @@ fn snapshot(
     }
     Ok(())
 }
-fn copy_stable(src: &Path, dest: &Path) -> Result<()> {
+pub(super) fn copy_stable(src: &Path, dest: &Path) -> Result<()> {
     let mut first = BTreeMap::new();
     snapshot(src, Some(dest), 0, &mut first, src)?;
     let mut second = BTreeMap::new();
@@ -255,6 +255,10 @@ pub(super) fn copy_content(engine: &Engine,id: &str,new_id: &str,report: &game::
     for name in ["config","defaultconfigs","kubejs","scripts","options.txt","resourcepacks","shaderpacks"] {
         if src.join(name).exists() {copy_stable(&src.join(name),&dest.join(name))?;}
     }
+    copy_worlds(engine,id,new_id,report)
+}
+pub(super) fn copy_worlds(engine: &Engine,id: &str,new_id: &str,report: &game::Reporter) -> Result<()> {
+    let dest=engine.ws.instance_dir(new_id)?.join("game");
     let worlds=list(engine,id)?;
     ensure!(worlds["warnings"].as_array().unwrap().is_empty(),"无法完整读取源世界");
     for w in worlds["worlds"].as_array().unwrap() {

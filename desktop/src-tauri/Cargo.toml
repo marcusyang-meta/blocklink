@@ -11,8 +11,10 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
 blocklink-service = { path = "../../crates/blocklink-service" }
 serde_json.workspace = true
+uuid.workspace = true
 
 [features]
 default = ["custom-protocol"]

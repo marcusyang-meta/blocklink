@@ -3,7 +3,7 @@ use super::*;
 use blocklink_model::{Artifact, Source};
 use std::collections::HashSet;
 
-fn portable(path: &str) -> Result<()> {
+pub(super) fn portable(path: &str) -> Result<()> {
     safe_join(Path::new("stage"), path)?;
     if path.is_empty() || path.len()>1024 {bail!("整合包文件路径无效")}
     for part in path.split('/') {
@@ -138,14 +138,66 @@ fn overrides(pack:&Path,game:&Path)->Result<()> {
     Ok(())
 }
 pub fn install(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Value>{
+    if let Some(id)=p["upgradeFrom"].as_str(){
+        e.idle(id)?;
+        let old=e.ws.instance(id)?;
+        if e.config(id)["server"]==true {bail!("Server packs cannot be upgraded as client instances")}
+        let pack=read_json(&e.ws.instance_dir(id)?.join("pack.json"))?;
+        if pack["project"].is_null()||pack["project"]!=p["project"] {bail!("The update must belong to the installed modpack")}
+        if old.instance_id==field(p,"newId")? {bail!("An upgrade requires a separate instance")}
+    }
     let pack=if let Some(path)=p["path"].as_str(){let path=PathBuf::from(path);if hash_file(&path,"sha512")?!=field(p,"sha512")?{bail!("整合包文件已改变，请重新选择")};path}else{
         report("获取整合包版本".into());let list=versions(field(p,"project")?)?;let v=list.as_array().context("版本列表无效")?.iter().find(|v|v["id"]==p["version"]).context("所选整合包版本已不可用")?;
         let files=v["files"].as_array().context("版本缺少文件")?;let f=files.iter().filter(|f|f["filename"].as_str().is_some_and(|s|s.ends_with(".mrpack"))).max_by_key(|f|f["primary"]==true).context("此版本没有 .mrpack 文件")?;
         let hash=hex(&f["hashes"]["sha512"],128)?;let path=e.ws.root().join("downloads/packs").join(format!("{hash}.mrpack"));report("下载整合包".into());fetch(field(f,"url")?,&path,hash)?;path
     };
+    if let Some(id)=p["upgradeFrom"].as_str(){if manifest(&pack)?["dependencies"]["minecraft"]!=e.ws.instance(id)?.minecraft {bail!("World migration currently requires the same Minecraft version")}}
     let i=prepare(e,p,&pack,&report)?;
+    if let Some(id)=p["upgradeFrom"].as_str(){
+        {let mut settings=e.settings.lock().unwrap();settings["instances"][&i.instance_id]["deploymentStatus"]=json!("preparing");}e.save_settings()?;
+        // Defaults and scripts come from the new release. The old instance preserves user edits.
+        worlds::copy_worlds(e,id,&i.instance_id,&report)?;
+    }
     report("自动准备游戏、Java 与加载器（整合包内容已保存）".into());game::install(e.ws.root(),&i,false,None,report)?;
+    if p["upgradeFrom"].is_string(){let mut settings=e.settings.lock().unwrap();settings["instances"][&i.instance_id]["deploymentStatus"]=json!("ready");drop(settings);e.save_settings()?;}
     Ok(json!({"id":i.instance_id,"name":i.name}))
+}
+
+// Export only gameplay directories; launcher credentials, logs, worlds, and server lists
+// are deliberately outside this allowlist. User-supplied configuration can still contain secrets.
+pub(super) fn export_entries(root:&Path,relative:&str,out:&mut Vec<(String,PathBuf)>,total:&mut u64)->Result<()> {
+    portable(relative)?;
+    let path=root.join(relative);let meta=fs::symlink_metadata(&path)?;
+    #[cfg(windows)] {use std::os::windows::fs::MetadataExt;if meta.file_attributes()&0x400!=0 {bail!("Cannot export filesystem links")}}
+    if meta.file_type().is_symlink(){bail!("Cannot export filesystem links")}
+    if meta.is_dir(){for entry in fs::read_dir(&path)? {let entry=entry?;let name=entry.file_name().into_string().map_err(|_|anyhow::anyhow!("Invalid filename"))?;export_entries(root,&format!("{relative}/{name}"),out,total)?;}}
+    else if meta.is_file(){*total=total.checked_add(meta.len()).context("Export too large")?;if *total>4_294_967_296||out.len()>=10000 {bail!("Modpack exceeds export limits")};out.push((relative.into(),path));}
+    else {bail!("Cannot export special files")}
+    Ok(())
+}
+pub fn export(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Value>{
+    let id=field(p,"id")?;e.idle(id)?;let i=e.ws.instance(id)?;
+    if e.config(id)["server"]==true {bail!("Export a client instance to share a playable modpack")}
+    let destination=PathBuf::from(field(p,"path")?);
+    if destination.extension().and_then(|s|s.to_str())!=Some("mrpack"){bail!("Choose a .mrpack filename")}
+    if destination.exists(){bail!("Choose a new filename; existing files are never replaced")}
+    let game=e.ws.instance_dir(id)?.join("game");let mut entries=Vec::new();let mut total=0;
+    for name in ["mods","config","defaultconfigs","kubejs","scripts","resourcepacks","shaderpacks"] {if game.join(name).exists(){export_entries(&game,name,&mut entries,&mut total)?;}}
+    entries.sort_by(|a,b|a.0.cmp(&b.0));let mut names=HashSet::new();
+    for (name,_) in &entries{if !names.insert(name.to_lowercase()){bail!("Case-insensitive filename collision")}}
+    let mut dependencies=json!({"minecraft":i.minecraft});
+    let loader=serde_json::to_value(&i.loader)?;
+    let key=match loader["kind"].as_str().unwrap_or("vanilla"){"fabric"=>Some("fabric-loader"),"quilt"=>Some("quilt-loader"),"forge"=>Some("forge"),"neoforge"=>Some("neoforge"),_=>None};
+    if let Some(key)=key{dependencies[key]=loader["version"].clone();}
+    let manifest=json!({"formatVersion":1,"game":"minecraft","name":i.name,"versionId":"1.0.0","summary":"Exported from Blocklink","dependencies":dependencies,"files":[]});
+    let parent=destination.parent().context("Choose an absolute destination")?;
+    let mut temp=tempfile::NamedTempFile::new_in(parent)?;
+    {let mut zip=zip::ZipWriter::new(temp.as_file_mut());let options=zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    zip.start_file("modrinth.index.json",options)?;zip.write_all(&serde_json::to_vec_pretty(&manifest)?)?;
+    for (name,path) in &entries{transfers::check()?;report(format!("Exporting {name}"));let before=hash_file(path,"sha512")?;zip.start_file(format!("overrides/{name}"),options)?;std::io::copy(&mut fs::File::open(path)?,&mut zip)?;if hash_file(path,"sha512")?!=before{bail!("A file changed during export: {name}")}}
+    zip.finish()?;}
+    temp.flush()?;preview(temp.path())?;temp.persist_noclobber(&destination).map_err(|e|e.error)?;
+    Ok(json!({"path":destination,"files":entries.len(),"bytes":fs::metadata(&destination)?.len()}))
 }
 fn prepare(e:&Arc<Engine>,p:&Value,pack:&Path,report:&game::Reporter)->Result<Instance>{
     let id=field(p,"newId")?;let target=e.ws.instance_dir(id)?;
@@ -175,6 +227,15 @@ fn prepare(e:&Arc<Engine>,p:&Value,pack:&Path,report:&game::Reporter)->Result<In
 }
 
 #[cfg(test)]mod tests{use super::*;
+#[test]fn export_roundtrip_excludes_private_data_and_preserves_existing_files()->Result<()>{
+ let temp=tempfile::tempdir()?;let pack=temp.path().join("source.mrpack");fixture(&pack,&[("overrides/config/example.txt",b"settings".to_vec()),("overrides/scripts/example.zs",b"script".to_vec())])?;
+ let e=Arc::new(Engine::new(&temp.path().join("data"))?);let id=uuid::Uuid::new_v4().to_string();let report:game::Reporter=Arc::new(|_|{});prepare(&e,&json!({"newId":id}),&pack,&report)?;
+ let game=e.ws.instance_dir(&id)?.join("game");fs::write(game.join("servers.dat"),b"private")?;fs::create_dir_all(game.join("saves/world"))?;fs::write(game.join("saves/world/level.dat"),b"private")?;
+ let output=temp.path().join("export.mrpack");export(&e,&json!({"id":id,"path":output}),report.clone())?;
+ let mut archive=zip::ZipArchive::new(fs::File::open(&output)?)?;assert!(archive.by_name("overrides/servers.dat").is_err());assert!(archive.by_name("overrides/saves/world/level.dat").is_err());
+ let imported=uuid::Uuid::new_v4().to_string();prepare(&e,&json!({"newId":imported}),&output,&report)?;assert_eq!(fs::read(e.ws.instance_dir(&imported)?.join("game/config/example.txt"))?,b"settings");
+ let before=fs::read(&output)?;assert!(export(&e,&json!({"id":id,"path":output}),report).is_err());assert_eq!(fs::read(output)?,before);Ok(())
+}
 fn local_fixture(path:&Path,mut v:Value,entries:&[(&str,&[u8])])->Result<()>{
  if v.is_null(){v=json!({"manifestType":"minecraftModpack","manifestVersion":1,"name":"国内整合包","version":"2","addons":[{"id":"game","version":"1.21.4"},{"id":"fabric","version":"0.16.10"}],"files":[]})}
  let mut z=zip::ZipWriter::new(fs::File::create(path)?);z.start_file("mcbbs.packmeta",zip::write::SimpleFileOptions::default())?;z.write_all(v.to_string().as_bytes())?;

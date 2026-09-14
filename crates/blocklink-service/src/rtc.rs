@@ -261,10 +261,8 @@ async fn serve_request(weak: Weak<Engine>, id: &str, io: &mut Io) -> Result<()> 
             let artifact = lock
                 .mods
                 .iter()
-                .find(|m| m.side != Side::Server && request["hash"] == m.sha512)
-                .context("文件不在已发布环境中")?;
-            let hash = artifact.sha512.clone();
-            let size = artifact.bytes;
+                .find(|m| m.side != Side::Server && request["hash"] == m.sha512);
+            let (hash,size)=if let Some(artifact)=artifact{(artifact.sha512.clone(),artifact.bytes)}else if let Some(bundle)=lock.content.as_ref().filter(|b|request["hash"]==b.sha512){(bundle.sha512.clone(),bundle.bytes)}else{bail!("文件不在已发布环境中")};
             let path = tokio::task::spawn_blocking(move || {
                 engine.ws.verify_blob(&hash, size)?;
                 engine.ws.blob_path(&hash)

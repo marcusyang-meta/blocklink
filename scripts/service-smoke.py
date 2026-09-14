@@ -31,8 +31,12 @@ with tempfile.TemporaryDirectory(prefix='blocklink-smoke-') as temp:
         assert response['ok'] is True
         assert response['value']['instances']==[]
         print('Native host starts, returns status, and rejects unauthenticated requests.')
+        request=urllib.request.Request(url,data=json.dumps({'action':'prepare-app-update','payload':{}}).encode(),headers={'Authorization':'Bearer '+config['token']})
+        assert json.load(urllib.request.urlopen(request,timeout=10))['value']['ready'] is True
+        assert process.wait(timeout=10)==0
+        print('Idle native host shuts down cleanly for app replacement.')
     finally:
-        process.terminate()
+        if process.poll() is None: process.terminate()
         try: process.wait(timeout=10)
         except subprocess.TimeoutExpired:
             process.kill()
