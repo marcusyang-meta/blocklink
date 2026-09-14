@@ -45,7 +45,7 @@ pub(crate) async fn prepare(servers: Vec<RTCIceServer>) -> Result<(Vec<RTCIceSer
                         bridge(udp,tls,&first[..size]).await
                     } else { bridge(udp,socket,&first[..size]).await }
                 }.await;
-                if let Err(error) = result { eprintln!("TURN stream transport unavailable"); #[cfg(test)] eprintln!("TURN adapter: {error:#}"); }
+                if let Err(_error) = result { eprintln!("TURN stream transport unavailable"); #[cfg(test)] eprintln!("TURN adapter: {_error:#}"); }
             })));
         }
         server.urls = urls;
