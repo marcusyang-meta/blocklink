@@ -1,5 +1,13 @@
 # Validation
 
+## 0.1.4 cloud gameplay acceptance passed
+
+- [Real keyboard and mouse acceptance passed](https://github.com/marcusyang-meta/blocklink/actions/runs/34833804227): a GitHub Linux Minecraft client played in an isolated Windows Fabric world, with both peers forced through Cloudflare TURN TLS 443.
+- X11 input held W and Space, selected the stone hotbar slot, right-clicked to place a block, and left-clicked to break it. The remote server independently confirmed forward movement of at least 2.5 blocks, feet rising at least 0.2 blocks, stone appearing at the target position, and that position returning to air.
+- Server commands prepared a flat creative-mode fixture and reset positions between checks; measured movement and target block placement/removal came from client input. This verifies creative-mode interactions, not survival mining duration.
+- The `Cloud-check-multiplayer` artifact contains placement and removal screenshots, client logs and the input record. Room closure disconnected the client; the server saved and stopped normally, and the expired invitation returned HTTP 410. No user worlds were modified.
+- The first attempt failed because the input script path was resolved relative to the Cargo crate directory. Resolving harness paths from the workspace root fixed that test failure; the linked retry passed all four actions.
+
 ## 0.1.4 relay fix: cross-network world entry passed
 
 - ICE offers and answers no longer wait for every endpoint to finish gathering. A regression test uses an unresponsive local STUN endpoint and still negotiates and transfers 256 KiB in under two seconds on the local Windows test machine.
@@ -62,7 +70,7 @@ Windows x64, Linux x64, Apple Silicon and Intel Mac passed the native GitHub Act
 
 ## Not yet verified
 
-- Physical GPU behavior, audio, input, native file dialogs and credential storage still need platform-specific verification on Mac/Linux. Linux cloud graphics initialization is covered above; cloud Mac gameplay did not pass.
+- Physical GPU behavior, audio, native file dialogs and credential storage still need platform-specific verification on Mac/Linux. Linux cloud rendering and synthetic keyboard/mouse gameplay are covered above; physical-device input and cloud Mac gameplay remain unverified.
 - Microsoft device authorization is implemented, but Minecraft API access has not been approved. A 403 at the Minecraft endpoint is not proof of every possible underlying cause; do not claim successful authenticated game login.
 - No CurseForge online integration. Unsupported package formats are rejected rather than presented as installed.
 
