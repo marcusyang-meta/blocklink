@@ -1,6 +1,6 @@
 """Cloud desktop and optional Minecraft rendering checks; never signs in or hosts a world."""
 import argparse,json,os,pathlib,re,subprocess,tempfile,time,urllib.request,shutil
-p=argparse.ArgumentParser();p.add_argument('binary',type=pathlib.Path);p.add_argument('--game',action='store_true');p.add_argument('--report',type=pathlib.Path,required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('binary',type=pathlib.Path);p.add_argument('--game',action='store_true');p.add_argument('--join',action='store_true');p.add_argument('--report',type=pathlib.Path,required=True);a=p.parse_args()
 report={'desktop':'not run','minecraft':'not run','platform':os.sys.platform}
 with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors=True) as temp:
  root=pathlib.Path(temp)/'data';root.mkdir();health=pathlib.Path(temp)/'ready'
@@ -28,8 +28,12 @@ with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors
   else:raise TimeoutError('Frontend did not confirm readiness')
   assert rpc('status')['serviceProtocol']==1;report['desktop']='passed: rendered frontend and authenticated service'
   print(report['desktop'],flush=True)
-  if a.game:
-   ident=job('create',{'name':'Cloud rendering check','minecraft':'1.21.1','loader':'fabric','memory':2048,'install':True})['id']
+  if a.game or a.join:
+   if a.join:
+    ident=job('remote-join',{'name':'Cross-network acceptance','invitation':os.environ['BLOCKLINK_TEST_INVITATION']})['id']
+    report['multiplayer']='joined lobby and synchronized published environment'
+   else:
+    ident=job('create',{'name':'Cloud rendering check','minecraft':'1.21.1','loader':'fabric','memory':2048,'install':True})['id']
    report['minecraft']='installed: Minecraft 1.21.1 and Fabric'
    job('offline-profile',{'name':'CloudCheck'});result=job('launch',{'id':ident});assert result.get('pid'),result;game_pid=result['pid']
    log=root/'instances'/ident/'game/logs/latest.log'
@@ -41,6 +45,10 @@ with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors
     time.sleep(1)
    else:raise TimeoutError('Minecraft rendering marker missing')
    report['minecraft']='passed: managed Java, Fabric installation and texture atlas rendering';print(report['minecraft'],flush=True)
+   if a.join:
+    # Authoritative world-entry and disconnect assertions run on the remote host.
+    time.sleep(90)
+    report['multiplayer']='client launched through lobby; consult remote server assertions for world entry'
  except Exception as e:
   report['error']=str(e)
   if game_pid:

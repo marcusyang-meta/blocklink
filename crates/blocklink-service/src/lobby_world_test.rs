@@ -62,6 +62,19 @@ fn real_game_enters_world_over_turn() -> Result<()> {
         wait_log(&dir.join("latest.log"), "Done (", 120)?;
         eprintln!("PASS: real Fabric world loaded on loopback");
         let room = create(&engine, id)?;
+        if let Ok(invite_file) = std::env::var("BLOCKLINK_WORLD_REMOTE_INVITE_FILE") {
+            fs::write(invite_file, field(&room, "invitation")?)?;
+            eprintln!("READY: isolated invitation saved; waiting for remote CloudCheck client");
+            wait_log(&dir.join("latest.log"), "CloudCheck joined the game", 1200)?;
+            engine.execute("console", &json!({"id":id,"command":"list"}), report.clone())?;
+            wait_log(&dir.join("latest.log"), "players online: CloudCheck", 15)?;
+            eprintln!("PASS: remote real Minecraft client joined through forced TURN; player list confirmed");
+            std::thread::sleep(Duration::from_secs(60));
+            close(&engine, id)?;
+            wait_log(&dir.join("latest.log"), "CloudCheck lost connection", 30)?;
+            eprintln!("PASS: room closure disconnected remote real Minecraft client");
+            return Ok(());
+        }
         let joined = join(
             &engine,
             &json!({"invitation":room["invitation"],"name":"TURN world acceptance"}),

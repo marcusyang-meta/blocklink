@@ -1,0 +1,42 @@
+name: Verify cross-network Minecraft
+on:
+  workflow_dispatch:
+    inputs:
+      invitation:
+        description: Short-lived isolated test room invitation (revoked after the run)
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  client:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '34818816053'
+          name: Blocklink-Linux-x64
+          path: packages
+      - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb libgl1-mesa-dri
+      - name: Join isolated remote world
+        env:
+          BLOCKLINK_TEST_INVITATION: ${{ inputs.invitation }}
+        run: |
+          echo "::add-mask::$BLOCKLINK_TEST_INVITATION"
+          binary=$(find packages -name '*.AppImage' -type f)
+          chmod +x "$binary"
+          xvfb-run -a dbus-run-session -- python scripts/cloud-desktop-smoke.py "$binary" --join --report cloud-checks/multiplayer.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Cloud-check-multiplayer
+          path: cloud-checks/*.json
