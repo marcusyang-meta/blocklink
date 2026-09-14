@@ -1,4 +1,5 @@
 name: Verify packaged Minecraft in the cloud
+run-name: ${{ inputs.platform }} packaged Minecraft validation
 on:
   workflow_dispatch:
     inputs:

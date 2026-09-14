@@ -4,7 +4,7 @@ Blocklink checks for signed app updates when opened. Use **Check for app updates
 
 Windows updates replace the portable executable without installing an MSI or NSIS package. macOS updates replace the `.app`; Linux updates use the AppImage format. A Linux `.deb` installation should be updated using its package manager or switched to the portable AppImage. The old preview has no updater and needs one manual download to adopt this feature. OS code signing and macOS notarization are separate from update signatures.
 
-## Local recovery changes awaiting release
+## Startup recovery
 
 The launcher checks both service version and protocol before connecting. An idle service supporting safe shutdown is replaced automatically; a busy or unsupported old service displays a startup error in the launcher instead of closing the window or accepting incompatible commands.
 
@@ -20,7 +20,7 @@ In a game's installation tab, **Export modpack** writes a `.mrpack` containing m
 
 In a hosted server's settings, enable **Sync configuration and scripts**. This explicitly publishes `config`, `defaultconfigs`, `kubejs`, and `scripts`; remove credentials and private information before enabling it. The next publish or server start snapshots these directories into a verified bundle. Changes while the server is running are not silently republished.
 
-Cloudflare lobby invitations and local server bindings synchronize the bundle before launch. Only previously managed files are removed; unrelated local files remain. Conflicting local edits stop synchronization with the affected filename. Move the conflicting file aside to keep a copy, then retry. Directory replacements have a recovery journal, and an interrupted replacement restores the previous directories on the next service start. Old direct HTTPS/iroh invitations refuse these environments and ask for a lobby invitation instead.
+Cloudflare lobby invitations and local server bindings synchronize the bundle before launch. Only previously managed files are removed; unrelated local files remain. Conflicting local edits stop synchronization and show the affected files on the game page. Choose **Back up and use server version** to preserve the local files before applying the server bundle. **Keep local settings for now** leaves files unchanged and pauses synchronization; joining remains blocked until the environment matches. A decision is refused if the local files changed after review. Settings backups are stored separately from the active game files and can be opened from the conflict panel. Directory replacements have a recovery journal, and an interrupted replacement restores the previous directories on the next service start. Old direct HTTPS/iroh invitations refuse these environments and ask for a lobby invitation instead.
 
 ## Publishing updates
 

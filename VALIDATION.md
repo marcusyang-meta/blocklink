@@ -1,6 +1,16 @@
 # Validation
 
-## Local P0 recovery fixes (not published)
+## 0.1.3 cloud and native verification
+
+- All four native builds, Rust tests and service checks passed: [Windows, Linux, Apple Silicon and Intel Mac](https://github.com/marcusyang-meta/blocklink/actions/runs/34818816053).
+- The rendered launcher frontend successfully communicated with its service on all four cloud platforms. These are actual native app launches, not only browser mockups.
+- Linux also automatically installed Java 21, Minecraft 1.21.1 and Fabric, launched the game and reached texture atlas initialization under Xvfb with Mesa software rendering.
+- Supplemental Apple Silicon and Windows game runs installed Java/Minecraft/Fabric but did not complete graphics initialization. Thread diagnostics reached GLFW window creation and its native error dialog; the Windows runner reported Microsoft Hyper-V Video. These remain failed rendering checks, not proof of working gameplay. [Mac diagnostic](https://github.com/marcusyang-meta/blocklink/actions/runs/34821476521), [Windows diagnostic](https://github.com/marcusyang-meta/blocklink/actions/runs/34821505192).
+- 65 local Rust tests passed. The browser-to-native settings-conflict flow preserved local files when dismissed, then backed them up and applied server settings when chosen. Native 0.1.2-to-0.1.3 update and deliberate early-crash rollback passed on Windows.
+- All four downloaded updater payloads passed independent signature verification; modified payloads were rejected.
+- The cloud harness now tolerates locked temporary WebView files during cleanup, avoiding an unrelated cleanup error after a successful Windows UI check.
+
+## Update recovery development checks
 
 - 64 Rust tests passed; seven external integrations remain opt-in. TypeScript and the production frontend build passed.
 - An interactive Windows native smoke test replaced the launcher, safely handed over an idle 0.1.2 service, and received health confirmation from the rendered UI before removing the old executable.
@@ -34,7 +44,7 @@ Windows x64, Linux x64, Apple Silicon and Intel Mac passed the native GitHub Act
 
 ## Not yet verified
 
-- Actual Minecraft windows, graphics, audio, input, file dialogs and credential storage still need platform-specific verification on Mac/Linux.
+- Physical GPU behavior, audio, input, native file dialogs and credential storage still need platform-specific verification on Mac/Linux. Linux cloud graphics initialization is covered above; cloud Mac gameplay did not pass.
 - Microsoft device authorization is implemented, but Minecraft API access has not been approved. A 403 at the Minecraft endpoint is not proof of every possible underlying cause; do not claim successful authenticated game login.
 - No CurseForge online integration. Unsupported package formats are rejected rather than presented as installed.
 

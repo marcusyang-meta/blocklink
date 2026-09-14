@@ -1,22 +1,22 @@
 {
-  "version": "0.1.2",
-  "notes": "Blocklink v0.1.2-preview.1. See GitHub release notes for changes.",
+  "version": "0.1.3",
+  "notes": "Safer updates and one-click settings conflict resolution. See release notes for cloud verification results.",
   "platforms": {
-    "darwin-x86_64": {
-      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-macOS-Intel.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmhhZjdSZGIyeEt1TDBkN043N0JTWUhoSDl6QU5CMWQwaUYzT1NGYkV0RTJoeDBFTEdGSm9YMWhKeHozd0pqcGdaS3dZV3FGR0lqeXpxVG5JY3RpMlFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY5MzE2CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1JbnRlbC5hcHAudGFyLmd6Cjh3VlFVMUhDRjdocitvMUl3NWFUQXA4ODBuK2dOMTB1U1F1MU5KZlVDTFdpZHdLMTNWNzNnQzNwbWVtWTRCTE1KSm1HOVkvRHRoM1JiSStlYlNmdkR3PT0K"
-    },
-    "windows-x86_64": {
-      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-Windows-x64.exe",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYm0rcDREYi85Q3ZLVTcyeGRIMy83dWdiYS9Eb3dSUGNYVVJ6QnQvL1M1cXFYYmdpYkF3K1Ewakt4L1hVZTYvelF5S2duL3phRVNTN25OM3BvOE55aUFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4MTY4CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1XaW5kb3dzLXg2NC5leGUKY1RQWERhMjBNdzRibXRyVGd4MHlRbEFiVEt0ZmZpN2phc1FuMVA4ZEl1T1RycjR6dGp1blNCNHc4T2F5dFd1aTVuaGM2ejBtY1dmcVBZd1RudzQ0QkE9PQo="
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYm5ab1RMcDNUN2xxb0hIdC9Ham12aTJDaWl6OWllYVFLSVhZMUFsNzIvWHArT2NvREh4ZzhGV2ljVllUQVNTeCtRd3UwcEZ3NlNkS1lmcmRPOFYreWdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzcyNDk4CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1MaW51eC14NjQuQXBwSW1hZ2UKVU5VeUVCREdEQU1ydUVqaUxVZUhFdkZxWHdnUjdwVFlTSWdQZVNDT1RnUGtTdXkxVzh6UXg4eHpRSFBzM3pVNUEzandWdkxxN3FybktxVHhINTM3REE9PQo=",
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.3-preview.1/Blocklink-update-Linux-x64.AppImage"
     },
     "darwin-aarch64": {
-      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-macOS-Apple-Silicon.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmtZTlhZbHUvS00rMHFFdWpKSTNZZmxjYVQ2bHpheU1lc1E1UG4wOUVFcmJKWHZ2aWp4dXY4OC9wVEFZcXV2djJXdVZzUHhlUzJoNHI1di9aaFloend3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4OTIzCWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1BcHBsZS1TaWxpY29uLmFwcC50YXIuZ3oKTVFsSll2VDYxeTZMSnpOK0R3clo4M1V1VFJITnI3UGsvcXF4Ym5nWWtLeW9oZi9pdDBaQ2gxNkFJcFZiVGFUbTJDU2N4aDNmRFNCNE9ieU5PbE5nQUE9PQo="
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmdPajZkZG1JbEdmdk5aRk5QMFBCL1BRb0hVOTVVZXBua3RVOVBsZ3lEcW1wVGNiRlVZZFNDSzhSbXBLbnR1azdRQmhNOFhOSXVHOTFpa0hpcVJ2MndNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzcyNDQwCWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1BcHBsZS1TaWxpY29uLmFwcC50YXIuZ3oKcDNadkQ1TW5iMDRhUjhnV1h4WEQwTWZrL3VlQTRMMGVKdk5SV1A3aFAvWEhxcGc1a214QlBzOVpIcXhUQ08zZDhNb21IUUxid3VpSjZRa29qN2tiQnc9PQo=",
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.3-preview.1/Blocklink-update-macOS-Apple-Silicon.app.tar.gz"
     },
-    "linux-x86_64": {
-      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-Linux-x64.AppImage",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYm44czNLZ25Yd1F2UnlTWjZtcGNQZFVSRzljYzdhMkl0S2srYVVSeEd4NUtNbWE1MUczSnJvc0paRjF1c0tZRG5mQVZCcytMZmc0aGJOOEpmdVltcHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4ODc2CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1MaW51eC14NjQuQXBwSW1hZ2UKK01DQlBIT3JLQkg0clVobVJIMXp6cDN6WUNTYWVVVno1THNuVWZNT2g1RVhaQ3E1UVdtc3pGZERMVlYyVHE1dzJlUEVpTmxJK0Ztd2NjMDlJektIQ2c9PQo="
+    "darwin-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmhwRVZNYUUxekxjMzdXOWNKUmR4WlJCZGg0dk56WVQwRTVjRm5pRjJlV0JjR1JHQVF4Si9LckgxOWdYWnJjK3U0dHVNRi9hYzYzTWVqR0N0ekV4b3dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzczNjc1CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1JbnRlbC5hcHAudGFyLmd6Cmg5VWtkditNdGl0dm5XeUtTSmtyOTgxbkNWOVNneUhjQWsxakFUSVhrbGR6bFN3amxIc0hUTWxQK091dVQ3QzJhWk9kM2E2QVJhYk1xSkpQRmFyMUJBPT0K",
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.3-preview.1/Blocklink-update-macOS-Intel.app.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmhLZDczTldRNnM0UmtXQjIrSmtGcnFHTmJWNzFaUjlvRUVSQ3g2ZWtPU0NIbFhtWTdiN3hSMjhjVnFZdXFWRElKY3o1aTAwSlB2Zkd2UjJzWEJ6RmdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzczMDg2CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1XaW5kb3dzLXg2NC5leGUKUUE3ZFBNTnNSUzYwc0Fua09BS2hZeUhjU3ZUU3U3SDRtWVJHTUF6ck1kdkpTc0JYUW85UzJNbnBDZEhDQUFSNzFFQjZyZTVBTEJpb1Z3T3QyV1Y3Q0E9PQo=",
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.3-preview.1/Blocklink-update-Windows-x64.exe"
     }
   }
 }
