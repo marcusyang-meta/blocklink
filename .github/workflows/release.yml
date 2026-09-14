@@ -1,0 +1,39 @@
+name: Publish downloadable packages
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful desktop build workflow run ID
+        required: true
+      tag:
+        description: Release tag (for example v0.1.0-preview.1)
+        required: true
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN: ${{ inputs.run_id }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate build and release
+        run: |
+          set -eu
+          test "$(gh run view "$BUILD_RUN" --json conclusion --jq .conclusion)" = success
+          test "$(gh run view "$BUILD_RUN" --json name --jq .name)" = 'Build Windows, macOS and Linux'
+          gh release view "$RELEASE_TAG" >/dev/null
+      - name: Download native archives
+        run: gh run download "$BUILD_RUN" --dir artifacts
+      - name: Attach packages and checksums
+        run: |
+          set -eu
+          find artifacts -type f \( -name 'Blocklink-*.zip' -o -name '*.sha256' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*.deb' \) -print0 | while IFS= read -r -d '' file; do
+            gh release upload "$RELEASE_TAG" "$file"
+          done
