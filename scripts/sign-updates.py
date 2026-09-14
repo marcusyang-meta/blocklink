@@ -22,6 +22,8 @@ else:
     images=list((release/'bundle/appimage').glob('*.AppImage'))
     if len(images)!=1: raise RuntimeError('Expected one AppImage')
     shutil.copyfile(images[0],payload)
-subprocess.run(['node','desktop/node_modules/@tauri-apps/cli/tauri.js','signer','sign',str(payload)],check=True)
+signing_env=dict(os.environ)
+signing_env.setdefault('TAURI_SIGNING_PRIVATE_KEY_PASSWORD','')
+subprocess.run(['node','desktop/node_modules/@tauri-apps/cli/tauri.js','signer','sign',str(payload)],check=True,env=signing_env,timeout=120)
 version=json.loads(pathlib.Path('desktop/src-tauri/tauri.conf.json').read_text())['version']
 (out/f'update-{target}.json').write_text(json.dumps({'version':version,'target':target,'file':payload.name,'signature':payload.with_name(payload.name+'.sig').read_text().strip()},indent=2)+'\n')
