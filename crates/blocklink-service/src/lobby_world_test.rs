@@ -13,6 +13,9 @@ fn cloud_client_enters_remote_world() -> Result<()> {
     engine.execute("offline-profile",&json!({"name":"CloudCheck"}),report.clone())?;
     let joined=join(&engine,&json!({"invitation":std::env::var("BLOCKLINK_TEST_INVITATION")?,"name":"TLS acceptance"}),&report)?;
     let id=field(&joined,"id")?;
+    // The unattended fixture has already chosen its accessibility preferences.
+    // Production instances retain Minecraft's first-run accessibility screen.
+    fs::write(engine.ws.instance_dir(id)?.join("game/options.txt"), "onboardAccessibility:false\n")?;
     let outcome=(|| -> Result<()> {
         engine.execute("launch",&json!({"id":id}),report.clone())?;
         let log=engine.ws.instance_dir(id)?.join("game/logs/latest.log");
@@ -29,6 +32,11 @@ fn cloud_client_enters_remote_world() -> Result<()> {
         std::thread::sleep(Duration::from_secs(85));
         Ok(())
     })();
+    if std::env::var("GITHUB_ACTIONS").as_deref()==Ok("true") {
+        let _=fs::create_dir_all("cloud-checks");
+        let _=fs::copy(engine.ws.instance_dir(id)?.join("game/logs/latest.log"),"cloud-checks/minecraft.log");
+        let _=Command::new("scrot").arg("cloud-checks/minecraft.png").status();
+    }
     let _=engine.execute("stop",&json!({"id":id,"force":true}),report);
     let _=close(&engine,id);
     outcome
