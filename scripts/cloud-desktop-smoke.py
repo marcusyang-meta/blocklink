@@ -30,6 +30,7 @@ with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors
   print(report['desktop'],flush=True)
   if a.game:
    ident=job('create',{'name':'Cloud rendering check','minecraft':'1.21.1','loader':'fabric','memory':2048,'install':True})['id']
+   report['minecraft']='installed: Minecraft 1.21.1 and Fabric'
    job('offline-profile',{'name':'CloudCheck'});result=job('launch',{'id':ident});assert result.get('pid'),result
    log=root/'instances'/ident/'game/logs/latest.log'
    for _ in range(120):
@@ -44,6 +45,9 @@ with tempfile.TemporaryDirectory(prefix='blocklink-cloud-',ignore_cleanup_errors
   report['error']=str(e);raise
  finally:
   if ident:
+   for name,relative in [('gameLogTail','game/logs/latest.log'),('launchLogTail','latest.log')]:
+    logpath=root/'instances'/ident/relative
+    if logpath.exists():report[name]=logpath.read_text(errors='replace')[-6000:]
    try:rpc('stop',{'id':ident,'force':True})
    except Exception:pass
   try:rpc('prepare-app-update')
