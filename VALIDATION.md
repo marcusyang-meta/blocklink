@@ -1,5 +1,15 @@
 # Validation
 
+## 0.1.2 feature verification
+
+- 61 Rust workspace tests passed; external integrations remain opt-in. A separate local Cloudflare-compatible lobby check transferred mods and configuration updates over real WebRTC, forwarded TCP and verified revocation.
+- Native Windows EXE smoke checks covered server publication, client binding, repeated configuration sync, modpack export and graceful updater shutdown.
+- Tests cover export/reimport, exclusion of private launcher data, preserved destination files, managed-file deletion, local conflicts and interrupted configuration recovery.
+- Authentic signed update payloads verify against the bundled key; altered payloads are rejected.
+- English and Chinese dictionary checks and the production frontend build passed. Browser verification caught and corrected narrow-window navigation overlap.
+- Public update discovery skips incomplete releases and uses a static fallback during upstream outages.
+
+
 ## 2026-09-13 local Windows preview
 
 - Windows MSVC release builds successfully. The packaged EXE starts its isolated native service, answers authenticated status requests and rejects unauthenticated calls.

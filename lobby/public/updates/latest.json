@@ -1,5 +1,22 @@
 {
-  "version": "0.1.0",
-  "notes": "No newer signed update has been published yet.",
-  "platforms": {}
+  "version": "0.1.2",
+  "notes": "Blocklink v0.1.2-preview.1. See GitHub release notes for changes.",
+  "platforms": {
+    "darwin-x86_64": {
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-macOS-Intel.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmhhZjdSZGIyeEt1TDBkN043N0JTWUhoSDl6QU5CMWQwaUYzT1NGYkV0RTJoeDBFTEdGSm9YMWhKeHozd0pqcGdaS3dZV3FGR0lqeXpxVG5JY3RpMlFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY5MzE2CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1JbnRlbC5hcHAudGFyLmd6Cjh3VlFVMUhDRjdocitvMUl3NWFUQXA4ODBuK2dOMTB1U1F1MU5KZlVDTFdpZHdLMTNWNzNnQzNwbWVtWTRCTE1KSm1HOVkvRHRoM1JiSStlYlNmdkR3PT0K"
+    },
+    "windows-x86_64": {
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-Windows-x64.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYm0rcDREYi85Q3ZLVTcyeGRIMy83dWdiYS9Eb3dSUGNYVVJ6QnQvL1M1cXFYYmdpYkF3K1Ewakt4L1hVZTYvelF5S2duL3phRVNTN25OM3BvOE55aUFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4MTY4CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1XaW5kb3dzLXg2NC5leGUKY1RQWERhMjBNdzRibXRyVGd4MHlRbEFiVEt0ZmZpN2phc1FuMVA4ZEl1T1RycjR6dGp1blNCNHc4T2F5dFd1aTVuaGM2ejBtY1dmcVBZd1RudzQ0QkE9PQo="
+    },
+    "darwin-aarch64": {
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-macOS-Apple-Silicon.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYmtZTlhZbHUvS00rMHFFdWpKSTNZZmxjYVQ2bHpheU1lc1E1UG4wOUVFcmJKWHZ2aWp4dXY4OC9wVEFZcXV2djJXdVZzUHhlUzJoNHI1di9aaFloend3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4OTIzCWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1tYWNPUy1BcHBsZS1TaWxpY29uLmFwcC50YXIuZ3oKTVFsSll2VDYxeTZMSnpOK0R3clo4M1V1VFJITnI3UGsvcXF4Ym5nWWtLeW9oZi9pdDBaQ2gxNkFJcFZiVGFUbTJDU2N4aDNmRFNCNE9ieU5PbE5nQUE9PQo="
+    },
+    "linux-x86_64": {
+      "url": "https://github.com/marcusyang-meta/blocklink/releases/download/v0.1.2-preview.1/Blocklink-update-Linux-x64.AppImage",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUc016MXQ1YkFXYm44czNLZ25Yd1F2UnlTWjZtcGNQZFVSRzljYzdhMkl0S2srYVVSeEd4NUtNbWE1MUczSnJvc0paRjF1c0tZRG5mQVZCcytMZmc0aGJOOEpmdVltcHdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MzY4ODc2CWZpbGU6QmxvY2tsaW5rLXVwZGF0ZS1MaW51eC14NjQuQXBwSW1hZ2UKK01DQlBIT3JLQkg0clVobVJIMXp6cDN6WUNTYWVVVno1THNuVWZNT2g1RVhaQ3E1UVdtc3pGZERMVlYyVHE1dzJlUEVpTmxJK0Ztd2NjMDlJektIQ2c9PQo="
+    }
+  }
 }

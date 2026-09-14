@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 preview
+
+- Signed app update discovery and installation; portable Windows replacement and native AppImage / macOS update payloads.
+- Modpack export and upgrades that retain the original instance and migrate worlds for the same Minecraft version.
+- Opt-in server configuration and script publishing, pre-launch synchronization, local conflict detection and interrupted-replacement recovery.
+- Compact update controls in smaller windows.
+- Complete release-feed discovery via the public GitHub release subscription; publication remains manually triggered.
+
 ## 0.1.0 preview — 2026-09-13
 
 - English and Simplified Chinese interface, immediate switching and saved language choice.

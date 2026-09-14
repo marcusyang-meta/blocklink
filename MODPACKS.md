@@ -17,7 +17,7 @@ Launch failures offer retry, game-file repair, runtime settings, environment sna
 - Modrinth `.mrpack` version 1.
 - Complete MCBBS ZIP exports from HMCL/PCL: manifestVersion 1, mcbbs.packmeta or manifest.json with addons, optionally inside a single outer directory. Minecraft and supported loader components are matched automatically. Local manifest files are verified with SHA-1; mods, configuration, resource packs and shaders in overrides are retained.
 
-Custom launch libraries or arguments, unknown components, missing remote files and CurseForge manifests are rejected before import. Arbitrary zipped launcher directories, HMCL dynamic server-update packs, CurseForge download manifests, automatic pack upgrades and treating any client pack as a server pack are unsupported. World deployment remains a separate feature.
+Custom launch libraries or arguments, unknown components, missing remote files and CurseForge manifests are rejected before import. Arbitrary zipped launcher directories, HMCL dynamic server-update packs, CurseForge download manifests, unattended pack upgrades and treating any client pack as a server pack are unsupported. World deployment remains a separate feature.
 
 CurseForge online downloads are not integrated because Blocklink has no configured API access. See the [provider's authentication announcement](https://blog.curseforge.com/introducing-api-key-authentication-for-curseforge-file-downloads/).
 
@@ -26,6 +26,12 @@ CurseForge online downloads are not integrated because Blocklink has no configur
 Categories come from Modrinth. Combine game and loader filters with downloads, relevance, recently updated, newest or follows sorting. Those filters continue into version selection. Stable releases are shown by default; prereleases can be enabled explicitly. Installed online packs are marked and can be opened directly. Local .mrpack imports use the same installation confirmation screen.
 
 References: [Modrinth pack format](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack) and [project search](https://docs.modrinth.com/api/operations/searchprojects/).
+
+## Export and upgrades
+
+Export a `.mrpack` from a game's Installation & runtime tab. Worlds, accounts and server lists are excluded. Review configuration and redistribution permissions before sharing.
+
+On an installed online pack's project page, select a release and choose Upgrade to selected version. The new copy uses the author's settings and copies worlds for the same Minecraft version. The original game stays available for rollback. See [upgrade and export details](docs/UPDATES-AND-PACKS.md).
 
 ## Deletion
 

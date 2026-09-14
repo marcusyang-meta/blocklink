@@ -15,7 +15,9 @@
 - Reuse identical mod files across games while keeping worlds and settings separate.
 - Manage mods, shaders, compatibility plans and recovery snapshots.
 - Import existing games and worlds, back up saves, or deploy a world to a local server.
-- Host on your own computer and invite friends using Blocklink. Synchronize published server mods before joining.
+- Host on your own computer and invite friends using Blocklink. Synchronize published server mods, configuration and scripts before joining.
+- Export modpacks and upgrade installed packs into a new copy while retaining the old version.
+- Check for signed launcher updates; Windows remains portable.
 - Switch between English and Simplified Chinese in Launcher settings.
 
 ## Download and start
@@ -44,7 +46,7 @@ From the repository root, run `cargo test --workspace --locked`. The [desktop wo
 
 ## More information
 
-[Getting started](docs/GETTING-STARTED.md) · [Changes](CHANGELOG.md) · [Modpacks](MODPACKS.md) · [Worlds](WORLDS.md) · [Multiplayer](NETWORK.md) · [Cloudflare deployment](lobby/README.md) · [Translations](desktop/I18N.md) · [Validation](VALIDATION.md)
+[Getting started](docs/GETTING-STARTED.md) · [Changes](CHANGELOG.md) · [Modpacks](MODPACKS.md) · [Updates and shared configuration](docs/UPDATES-AND-PACKS.md) · [Worlds](WORLDS.md) · [Multiplayer](NETWORK.md) · [Cloudflare deployment](lobby/README.md) · [Translations](desktop/I18N.md) · [Validation](VALIDATION.md)
 
 ## Contributing
 
