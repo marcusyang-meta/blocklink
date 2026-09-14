@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev libsecret-1-dev libssl-dev pkg-config xvfb libgl1-mesa-dri scrot
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev libsecret-1-dev libssl-dev pkg-config xvfb libgl1-mesa-dri scrot xdotool
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -30,6 +30,7 @@ jobs:
           BLOCKLINK_TEST_INVITATION: ${{ inputs.invitation }}
           BLOCKLINK_TEST_RELAY_ONLY: '1'
           BLOCKLINK_TEST_TURN_TLS_ONLY: '1'
+          BLOCKLINK_TEST_GAMEPLAY: '1'
         run: |
           echo "::add-mask::$BLOCKLINK_TEST_INVITATION"
           mkdir -p cloud-checks

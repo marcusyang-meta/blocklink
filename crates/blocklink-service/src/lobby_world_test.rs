@@ -15,9 +15,9 @@ fn cloud_client_enters_remote_world() -> Result<()> {
     let id=field(&joined,"id")?;
     // The unattended fixture has already chosen its accessibility preferences.
     // Production instances retain Minecraft's first-run accessibility screen.
-    fs::write(engine.ws.instance_dir(id)?.join("game/options.txt"), "onboardAccessibility:false\n")?;
+    fs::write(engine.ws.instance_dir(id)?.join("game/options.txt"), "onboardAccessibility:false\npauseOnLostFocus:false\nautoJump:false\n")?;
     let outcome=(|| -> Result<()> {
-        engine.execute("launch",&json!({"id":id}),report.clone())?;
+        let launched=engine.execute("launch",&json!({"id":id}),report.clone())?;
         let log=engine.ws.instance_dir(id)?.join("game/logs/latest.log");
         let deadline=std::time::Instant::now()+Duration::from_secs(150);
         let joined=regex::Regex::new(r"Loaded \d+ advancements")?;
@@ -29,7 +29,13 @@ fn cloud_client_enters_remote_world() -> Result<()> {
             std::thread::sleep(Duration::from_secs(1));
         }
         eprintln!("PASS: real client received world data over forced TLS relay");
-        std::thread::sleep(Duration::from_secs(85));
+        if std::env::var("BLOCKLINK_TEST_GAMEPLAY").as_deref()==Ok("1") {
+            let status=Command::new("python3").arg("scripts/cloud-gameplay-input.py")
+                .env("BLOCKLINK_TEST_GAME_LOG",&log)
+                .env("BLOCKLINK_TEST_GAME_PID",launched["pid"].to_string()).status()?;
+            ensure!(status.success(),"Cloud keyboard/mouse acceptance failed");
+            std::thread::sleep(Duration::from_secs(15));
+        } else {std::thread::sleep(Duration::from_secs(85));}
         Ok(())
     })();
     if std::env::var("GITHUB_ACTIONS").as_deref()==Ok("true") {
@@ -109,7 +115,10 @@ fn real_game_enters_world_over_turn() -> Result<()> {
             engine.execute("console", &json!({"id":id,"command":"list"}), report.clone())?;
             wait_log(&dir.join("latest.log"), "players online: CloudCheck", 15)?;
             eprintln!("PASS: remote real Minecraft client joined through forced TURN; player list confirmed");
-            std::thread::sleep(Duration::from_secs(60));
+            if std::env::var("BLOCKLINK_TEST_GAMEPLAY").as_deref()==Ok("1") {
+                gameplay_actions(&engine,id,&dir.join("latest.log"),&report)?;
+                std::thread::sleep(Duration::from_secs(5));
+            } else {std::thread::sleep(Duration::from_secs(60));}
             ensure!(!fs::read_to_string(dir.join("latest.log"))?.contains("CloudCheck lost connection"), "Player disconnected before room closure");
             close(&engine, id)?;
             wait_log(&dir.join("latest.log"), "CloudCheck lost connection", 30)?;
@@ -160,6 +169,49 @@ fn real_game_enters_world_over_turn() -> Result<()> {
     }
     fs::write(properties, original)?;
     outcome
+}
+
+fn gameplay_actions(engine: &Arc<Engine>, id: &str, log: &Path, report: &game::Reporter) -> Result<()> {
+    let command=|text: &str| -> Result<()> {engine.execute("console",&json!({"id":id,"command":text}),report.clone())?;Ok(())};
+    let notify=|marker: &str|command(&format!("tellraw CloudCheck {{\"text\":\"{marker}\"}}"));
+    let check=|setup: &str, condition: &str, marker: &str| -> Result<()> {
+        let deadline=std::time::Instant::now()+Duration::from_secs(25);
+        loop {
+            if !setup.is_empty() {command(setup)?;}
+            command(&format!("execute {condition} run say {marker}"))?;
+            std::thread::sleep(Duration::from_millis(100));
+            if fs::read_to_string(log)?.contains(marker) { eprintln!("PASS: server verified {marker}");return Ok(()); }
+            ensure!(std::time::Instant::now()<deadline,"Server did not verify {marker}");
+        }
+    };
+    command("gamemode creative CloudCheck")?;
+    command("difficulty peaceful")?;
+    command("forceload add -16 -16 16 16")?;
+    command("tp CloudCheck 0.5 101 0.5 0 0")?;
+    std::thread::sleep(Duration::from_secs(3));
+    command("fill -6 100 -6 6 100 12 minecraft:stone")?;
+    command("fill -6 101 -6 6 106 12 minecraft:air")?;
+    command("scoreboard objectives add bl_accept dummy")?;
+    command("tp CloudCheck 0.5 101 0.5 0 0")?;
+    std::thread::sleep(Duration::from_secs(1));
+    notify("BL_MOVE_READY")?;
+    check("execute store result score #z bl_accept run data get entity CloudCheck Pos[2] 1000", "if score #z bl_accept matches 3000..10000", "BL_MOVE_PASS")?;
+    command("tp CloudCheck 0.5 101 0.5 0 0")?;
+    std::thread::sleep(Duration::from_secs(2));
+    notify("BL_JUMP_READY")?;
+    check("execute store result score #y bl_accept run data get entity CloudCheck Pos[1] 1000", "if score #y bl_accept matches 101200..104000", "BL_JUMP_PASS")?;
+    std::thread::sleep(Duration::from_secs(2));
+    command("tp CloudCheck 0.5 101 0.5 0 45")?;
+    command("item replace entity CloudCheck hotbar.0 with minecraft:stone 64")?;
+    command("setblock 0 101 2 minecraft:air")?;
+    std::thread::sleep(Duration::from_secs(1));
+    notify("BL_PLACE_READY")?;
+    check("", "if block 0 101 2 minecraft:stone", "BL_PLACE_PASS")?;
+    notify("BL_BREAK_READY")?;
+    check("", "if block 0 101 2 minecraft:air", "BL_BREAK_PASS")?;
+    notify("BL_ACTIONS_PASS")?;
+    eprintln!("PASS: remote keyboard movement, jump, placement and mining verified against server state");
+    Ok(())
 }
 
 fn wait_log(path: &Path, marker: &str, seconds: u64) -> Result<()> {
