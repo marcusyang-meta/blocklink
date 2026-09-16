@@ -40,6 +40,17 @@ const assert = require('node:assert/strict');
   await start.click();
   const request=await page.evaluate(()=>window.lastManagedCommand);
   assert.equal(request.action,'launch');assert.equal(request.payload.eula,true);assert(request.requestId);
+  await page.getByRole('button',{name:'Install or repair connection',exact:true}).click();
+  await page.getByRole('heading',{name:'Automatic deployment',exact:true}).waitFor();
+  const mode=page.getByRole('combobox').filter({hasText:'Docker'});
+  assert.equal(await mode.count(),1);
+  await mode.click();
+  await page.getByRole('option',{name:'systemd',exact:true}).click();
+  assert.equal(await page.getByRole('combobox').filter({hasText:'systemd'}).count(),1);
+  await page.getByRole('combobox').filter({hasText:'systemd'}).click();
+  await page.getByRole('option',{name:'Docker',exact:true}).click();
+  await page.getByRole('heading',{name:'Automatic deployment',exact:true}).scrollIntoViewIfNeeded();
+  await page.screenshot({path:path.resolve(__dirname,'../docs/screenshots/docker-deployment-preview.png')});
   assert.deepEqual(errors,[]);
   console.log('Managed host UI smoke passed: render, EULA gate and command submission.');
  } finally {if(browser)await browser.close();preview.kill();}

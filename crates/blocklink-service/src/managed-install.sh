@@ -2,6 +2,9 @@
 set -eu
 stage=$1
 [ "$(id -u)" = 0 ]
+if [ -e /var/lib/blocklink-docker/agent.json ]; then
+  echo "An existing Docker agent must be migrated separately" >&2; exit 1
+fi
 [ -f /etc/os-release ]
 . /etc/os-release
 case "$ID" in
