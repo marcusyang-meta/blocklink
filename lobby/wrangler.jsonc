@@ -6,8 +6,8 @@
   "workers_dev": true,
   "routes": [{"pattern": "blocklink.jyang.dev", "custom_domain": true}],
   "assets": {"directory": "./public", "binding": "ASSETS", "run_worker_first": true},
-  "durable_objects": {"bindings": [{"name": "ROOMS", "class_name": "Room"}]},
-  "migrations": [{"tag": "v1", "new_sqlite_classes": ["Room"]}],
+  "durable_objects": {"bindings": [{"name": "ROOMS", "class_name": "Room"}, {"name": "HOSTS", "class_name": "ManagedHost"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["Room"]}, {"tag": "v2-managed-hosts", "new_sqlite_classes": ["ManagedHost"]}],
   "vars": {"MAX_ROOMS": "20", "MAX_MEMBERS": "8", "ROOM_TTL_SECONDS": "43200"},
   "observability": {"enabled": false}
 }

@@ -1,0 +1,27 @@
+name: Headless managed host
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['crates/**', 'Cargo.*', '.github/workflows/headless.yml']
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config
+      - run: cargo test -p blocklink-service --locked
+      - run: cargo build -p blocklink-service --release --locked
+      - name: Prepare checksummed service
+        run: |
+          mkdir headless
+          cp target/release/blocklink-service headless/blocklink-service-linux-x86_64
+          cd headless
+          sha256sum blocklink-service-linux-x86_64 > blocklink-service-linux-x86_64.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blocklink-headless-linux-x86_64
+          path: headless/*

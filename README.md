@@ -53,3 +53,5 @@ From the repository root, run `cargo test --workspace --locked`. The [desktop wo
 See [CONTRIBUTING.md](CONTRIBUTING.md). Reports and suggestions are welcome in [GitHub Issues](https://github.com/marcusyang-meta/blocklink/issues). Never include credentials or private invitation links.
 
 MIT licensed. Third-party notices are in [desktop/src-tauri/notices](desktop/src-tauri/notices). No Minecraft, Java or mod binaries are included in the source repository. Blocklink is an independent project and is not affiliated with, sponsored by or endorsed by Mojang or Microsoft.
+
+Remote-host development preview: [Managed Linux hosts](docs/MANAGED-HOSTS.md). Requires matching headless release assets and the updated lobby API; real-host acceptance is pending.
