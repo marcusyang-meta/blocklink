@@ -11,6 +11,8 @@ pub mod net;
 mod peer;
 mod quilt;
 mod remote;
+mod managed;
+mod provision;
 mod rtc;
 mod turn_transport;
 mod trash;
@@ -90,7 +92,7 @@ impl Engine {
             shutting_down: std::sync::atomic::AtomicBool::new(false),
             ws,
             settings: Mutex::new(settings),
-            jobs: Mutex::new(vec![]),
+            jobs: Mutex::new(managed::recover_jobs(root)?),
             children: Mutex::new(HashMap::new()),
             gate: Mutex::new(()),
             remote_port: Mutex::new(None),
@@ -174,12 +176,21 @@ impl Engine {
             if jobs.len() > 80 {
                 jobs.retain(|v| v["status"] == "running" || v["status"] == "queued");
             }
-            jobs.push(json!({"id":id,"action":action,"instanceId":payload.get("id").or_else(||payload.get("newId")),"payload":if controllable {payload.clone()}else{Value::Null},"retryable":controllable,"cancelable":controllable,"status":"queued","message":"等待执行","started":auth::now()}));
+            jobs.push(json!({"id":id,"action":action,"hostId":payload.get("hostId"),"instanceId":payload.get("id").or_else(||payload.get("newId")),"payload":if controllable {payload.clone()}else{Value::Null},"retryable":controllable,"cancelable":controllable,"status":"queued","message":"等待执行","started":auth::now()}));
+        }
+        if let Err(error) = self.persist_jobs() {
+            if let Some(j) = self.jobs.lock().unwrap().iter_mut().find(|j| j["id"] == id) {
+                j["status"] = json!("error"); j["message"] = json!(format!("Cannot persist task: {error}"));
+            }
+            return json!({"jobId":id});
         }
         let e = self.clone();
         let jid = id.clone();
         std::thread::spawn(move || {
             let _gate = e.gate.lock().unwrap();
+            if e.shutting_down.load(std::sync::atomic::Ordering::SeqCst) {
+                e.update_job(&jid,"error","Service is shutting down",Value::Null); return;
+            }
             let weak_cancel=Arc::downgrade(&e);let cancel_id=jid.clone();
             let weak_event=Arc::downgrade(&e);let event_id=jid.clone();
             transfers::attach(transfers::Context{cancelled:Arc::new(move||weak_cancel.upgrade().is_some_and(|e|e.jobs.lock().unwrap().iter().any(|j|j["id"]==cancel_id&&j["cancelRequested"]==true))),event:Arc::new(move|value|{if let Some(e)=weak_event.upgrade(){if let Some(j)=e.jobs.lock().unwrap().iter_mut().find(|j|j["id"]==event_id){for (key,value) in value.as_object().unwrap(){j[key]=value.clone();}}}})});
@@ -203,12 +214,17 @@ impl Engine {
         });
         json!({"jobId":id})
     }
+    fn persist_jobs(&self) -> Result<()> {
+        let jobs = self.jobs.lock().unwrap();
+        write_json(&self.ws.root().join("jobs.json"), &*jobs)
+    }
     fn update_job(&self, id: &str, status: &str, message: &str, result: Value) {
         if let Some(j) = self.jobs.lock().unwrap().iter_mut().find(|j| j["id"] == id) {
             j["status"] = json!(status);
             j["message"] = json!(message);
             j["result"] = result;
         }
+        if let Err(error) = self.persist_jobs() { eprintln!("Task persistence failed: {error}"); }
     }
     fn publish_lock(&self, id: &str) -> Result<Lockfile> {
         self.ws.instance(id)?;
@@ -259,6 +275,7 @@ impl Engine {
         Ok(())
     }
     fn execute(self: &Arc<Self>, action: &str, p: &Value, report: game::Reporter) -> Result<Value> {
+        if action == "managed-deploy" { return provision::deploy(self, p, report); }
         if ["instance-delete", "instance-restore"].contains(&action) {
             return trash::execute(self, action, p);
         }
@@ -717,6 +734,11 @@ impl Engine {
             peer::ensure(self)?;
         }
         match action {
+            "managed-list" => managed::list(self),
+            "managed-probe" => provision::probe(&p),
+            "managed-register" => managed::register(self,&p),
+            "managed-status" | "managed-command" | "managed-revoke" => managed::owner_request(self,action,&p),
+            "managed-deploy" => Ok(self.job(action.into(),p)),
             "content-conflicts" => content::conflicts(self,field(&p,"id")?),
             "shader-state" => {let i=self.ws.instance(field(&p,"id")?)?;shaders::state(&self.ws,&i)},
             "preflight" => {let i=self.ws.instance(field(&p,"id")?)?;preflight::inspect(&self.ws,&i,None)},
@@ -894,7 +916,10 @@ pub fn serve(root: PathBuf) -> Result<()> {
         &root.join("service.json"),
         &json!({"port":port,"token":token,"pid":std::process::id()}),
     )?;
+    managed::start(&engine)?;
+    let stop_requested = managed::shutdown_signal(&root)?;
     while !engine.shutting_down.load(std::sync::atomic::Ordering::SeqCst) {
+        if stop_requested.load(std::sync::atomic::Ordering::SeqCst) { managed::shutdown(&engine); break; }
         let Some(mut req)=server.recv_timeout(Duration::from_millis(500))? else{continue};
         let auth = req
             .headers()

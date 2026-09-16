@@ -51,3 +51,5 @@ pnpm tauri build
 ## 许可
 
 MIT，第三方许可见 desktop/src-tauri/notices/。源码仓库不附带 Minecraft、Java 或模组二进制文件。Blocklink 是独立第三方项目，与 Mojang / Microsoft 没有隶属、赞助或背书关系。
+
+远程主机管理开发预览见 [远程 Linux 主机](docs/MANAGED-HOSTS.zh-CN.md)。需要配套无界面服务附件和大厅管理接口，尚待真实主机部署验收。

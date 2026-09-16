@@ -41,6 +41,18 @@ export default {
         const input = metadata(await body(request));
         return env.ROOMS.get(env.ROOMS.idFromName('registry')).fetch(new Request('https://room/registry', {method: 'POST', body: JSON.stringify(input)}));
       }
+      if (url.pathname === '/api/hosts' && request.method === 'POST') {
+        if (!env.HOSTS) return json({error: 'Managed hosts are not enabled'}, 503);
+        if (!env.LOBBY_HOST_KEY || await digest(bearer(request)) !== await digest(env.LOBBY_HOST_KEY)) return json({error: 'Invalid registration credential'}, 401);
+        const input = await body(request);
+        if (!/^[a-f0-9]{32}$/.test(input.id) || !/^[a-f0-9]{64}$/.test(input.ownerToken) || !/^[a-f0-9]{64}$/.test(input.agentToken) || input.ownerToken === input.agentToken) return json({error: 'Invalid enrollment'}, 400);
+        return env.HOSTS.get(env.HOSTS.idFromName(input.id)).fetch(new Request('https://host/init', {method:'POST', body:JSON.stringify(input)}));
+      }
+      const hostMatch = url.pathname.match(/^\/api\/hosts\/([a-f0-9]{32})(\/commands|\/poll|\/revoke)?$/);
+      if (hostMatch) {
+        if (!env.HOSTS) return json({error: 'Managed hosts are not enabled'}, 503);
+        return env.HOSTS.get(env.HOSTS.idFromName(hostMatch[1])).fetch(request);
+      }
       const match = url.pathname.match(/^\/api\/rooms\/([a-f0-9]{32})(\/join|\/socket|\/turn|\/close)?$/);
       if (!match) return json({error: '地址不存在'}, 404);
       // Only these explicit routes reach a room; the registry cannot be called publicly.
@@ -234,4 +246,75 @@ export class Room {
 
 function invitePage() {
   return new Response(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>加入 Blocklink 房间</title><style>body{background:#f2f0e7;color:#243a30;font:18px system-ui;max-width:560px;margin:15vh auto;padding:24px}h1{font-size:40px}p{line-height:1.8}button{font:inherit;background:#315b42;color:white;border:0;border-radius:10px;padding:14px 24px;cursor:pointer}small{display:block;margin-top:28px;color:#667469}</style><h1>一起进入方块世界</h1><p>在 Blocklink 中粘贴此邀请链接，即可查看房间、同步 Mods 并加入游戏。</p><button id="copy">复制邀请链接</button><p id="status" role="status"></p><small>房主需要保持电脑与 Blocklink 后台在线。请仅向信任的朋友分享邀请。</small><script>document.getElementById('copy').onclick=async()=>{try{if(!location.hash)throw Error();await navigator.clipboard.writeText(location.href);document.getElementById('status').textContent='已复制，请在 Blocklink 的「加入房间」中粘贴。'}catch{document.getElementById('status').textContent='请复制浏览器地址栏中的完整邀请链接。'}};</script></html>`, {headers: {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"}});
+}
+
+// Management identities are separate from multiplayer invitations.
+const managedActions = new Set(['create','install','launch','stop','console','logs','configure','publish',
+  'mod-add','mod-remove','mod-toggle','world-list','world-backups','world-backup','world-backup-restore',
+  'world-activate','verify','server-files','server-file-read','server-file-write','server-mods']);
+export class ManagedHost {
+  constructor(ctx,env) {this.ctx=ctx;this.env=env;}
+  async fetch(request) {
+    return this.ctx.blockConcurrencyWhile(async()=>{
+      try{return await this.handle(request);}catch{return json({error:'Invalid managed-host request'},400);}
+    });
+  }
+  async handle(request) {
+    const path=new URL(request.url).pathname;
+    let host=await this.ctx.storage.get('host');
+    if(path==='/init'&&request.method==='POST') {
+      const input=await body(request),ownerHash=await digest(input.ownerToken),agentHash=await digest(input.agentToken);
+      if(host)return host.ownerHash===ownerHash&&host.agentHash===agentHash&&!host.revoked?json({id:host.id}):json({error:'Host identity already exists'},409);
+      host={id:input.id,name:label(input.name)||'Linux server',ownerHash,agentHash,lastSeen:0,revoked:false};
+      await this.ctx.storage.put('host',host);return json({id:host.id},201);
+    }
+    if(!host)return json({error:'Host not found'},404);
+    const hash=await digest(bearer(request)),owner=hash===host.ownerHash,agent=hash===host.agentHash;
+    if(!owner&&!agent)return json({error:'Unauthorized'},401);
+    if(host.revoked)return json({error:'Host access revoked'},410);
+    const suffix=path.slice(path.lastIndexOf('/'));
+    if(suffix==='/poll') {
+      if(!agent)return json({error:'Agent credential required'},403);
+      if(request.method!=='POST')return json({error:'Method not allowed'},405);
+      const input=await body(request),commands=await this.ctx.storage.get('commands')||[];
+      if(input.completion) {
+        const c=commands.find(c=>c.id===input.completion.id);
+        if(!c||c.status!=='dispatched') {
+          if(!c||!['done','error'].includes(c.status))return json({error:'Unknown dispatched command'},409);
+        }else{
+          c.status=input.completion.ok===true?'done':'error';c.result=input.completion.value??null;
+          c.error=typeof input.completion.error==='string'?input.completion.error.slice(0,4096):null;c.finishedAt=Date.now();
+        }
+      }
+      host.lastSeen=Date.now();host.snapshot=input.snapshot??host.snapshot??null;
+      for(const c of commands)if(c.status==='queued'&&c.createdAt<Date.now()-86400000){c.status='error';c.error='Command expired before delivery';c.finishedAt=Date.now();}
+      const next=commands.find(c=>c.status==='dispatched')||commands.find(c=>c.status==='queued');
+      if(next){next.status='dispatched';next.dispatchedAt??=Date.now();}
+      await this.ctx.storage.put({host,commands});
+      return json({command:next?{id:next.id,action:next.action,payload:next.payload}:null});
+    }
+    if(!owner)return json({error:'Owner credential required'},403);
+    if(suffix==='/revoke'&&request.method==='POST'){
+      host.revoked=true;host.snapshot=null;await this.ctx.storage.put({host,commands:[]});return json({revoked:true});
+    }
+    if(suffix==='/commands'&&request.method==='POST'){
+      const input=await body(request);
+      if(!/^[a-f0-9-]{36}$/.test(input.id)||!managedActions.has(input.action)||!input.payload||Array.isArray(input.payload)||typeof input.payload!=='object')return json({error:'Unsupported command'},400);
+      const commands=await this.ctx.storage.get('commands')||[];
+      const fingerprint=await digest(JSON.stringify({action:input.action,payload:input.payload}));
+      const existing=commands.find(c=>c.id===input.id);
+      if(existing)return existing.fingerprint===fingerprint?json(existing):json({error:'Command ID reused with different content'},409);
+      if(commands.filter(c=>['queued','dispatched'].includes(c.status)).length>=20)return json({error:'Command queue is full'},429);
+      const retained=commands.filter(c=>['queued','dispatched'].includes(c.status)||c.createdAt>Date.now()-7*86400000);
+      if(retained.length>=500)return json({error:'Command history limit reached'},429);
+      const command={id:input.id,action:input.action,instanceId:input.payload.id??null,payload:input.payload,fingerprint,status:'queued',createdAt:Date.now()};
+      retained.push(command);await this.ctx.storage.put('commands',retained);return json(command,202);
+    }
+    if(suffix==='/'+host.id&&request.method==='GET'){
+      const commands=await this.ctx.storage.get('commands')||[];
+      return json({id:host.id,name:host.name,online:host.lastSeen>Date.now()-30000,lastSeen:host.lastSeen,snapshot:host.snapshot??null,
+        commands:commands.slice(-100).map(({fingerprint,payload,...rest})=>rest)});
+    }
+    return json({error:'Method or route not allowed'},405);
+  }
 }
