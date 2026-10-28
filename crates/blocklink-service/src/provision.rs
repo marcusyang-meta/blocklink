@@ -24,6 +24,14 @@ fn download_url(version:&str)->String{
     let base=std::env::var("BLOCKLINK_SERVICE_DOWNLOAD_BASE").ok().map(|v|v.trim().trim_end_matches('/').to_owned()).filter(|v|!v.is_empty()).unwrap_or_else(||DEFAULT_DOWNLOAD_BASE.to_owned());
     format!("{base}/{version}/blocklink-service-linux-x86_64")
 }
+fn release_client(url:&str)->Result<reqwest::blocking::Client>{
+    // The shared net::client() is HTTPS-only; a download-base override may
+    // only relax that for a loopback origin, mirroring the lobby rule.
+    let parsed=reqwest::Url::parse(url)?;
+    let loopback_http=parsed.scheme()=="http"&&matches!(parsed.host_str(),Some("127.0.0.1"|"localhost"|"[::1]"));
+    anyhow::ensure!(parsed.scheme()=="https"||loopback_http,"Release download must use HTTPS (loopback HTTP is allowed for local testing)");
+    Ok(reqwest::blocking::Client::builder().https_only(!loopback_http).connect_timeout(Duration::from_secs(20)).timeout(Duration::from_secs(240)).build()?)
+}
 fn deployment_mode(p:&Value)->Result<&str>{
     let mode=match p.get("deploymentMode") { None=>"systemd", Some(v)=>v.as_str().context("Deployment mode must be a string")? };
     anyhow::ensure!(["systemd","docker"].contains(&mode),"Unsupported deployment mode");
@@ -56,9 +64,10 @@ pub(super) fn deploy(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Valu
         let version=p["releaseTag"].as_str().unwrap_or(concat!("v",env!("CARGO_PKG_VERSION")));
         anyhow::ensure!(version.starts_with('v')&&version.len()<=80&&version.bytes().all(|b|b.is_ascii_alphanumeric()||b".-".contains(&b)),"Invalid release tag");
         let url=download_url(version);
-        let checksum=client()?.get(format!("{url}.sha256")).send()?.error_for_status().context("This release has no headless service artifact yet")?.text()?;
+        let dl=release_client(&url)?;
+        let checksum=dl.get(format!("{url}.sha256")).send()?.error_for_status().context("This release has no headless service artifact yet")?.text()?;
         let expected=checksum.split_whitespace().next().context("Missing checksum")?;anyhow::ensure!(expected.len()==64&&expected.bytes().all(|b|b.is_ascii_hexdigit()),"Invalid release checksum");
-        let mut file=tempfile::NamedTempFile::new_in(e.ws.root())?;let mut response=client()?.get(&url).send()?.error_for_status()?;
+        let mut file=tempfile::NamedTempFile::new_in(e.ws.root())?;let mut response=dl.get(&url).send()?.error_for_status()?;
         let n=std::io::copy(&mut response.by_ref().take(268_435_457),&mut file)?;file.flush()?;
         anyhow::ensure!(n<=268_435_456&&hash_file(file.path(),"sha256")?.eq_ignore_ascii_case(expected),"Headless service checksum mismatch");
         let dir=format!("/tmp/blocklink-{}",uuid::Uuid::new_v4().simple());run(&s,&format!("umask 077; mkdir {dir}"))?;
@@ -80,4 +89,5 @@ pub(super) fn deploy(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Valu
 #[cfg(test)] mod tests{use super::*;#[test] fn rejects_host_shell_syntax_before_network_access(){assert!(connect(&json!({"host":"x;touch /tmp/pwn"})).is_err());assert!(connect(&json!({"host":"-oProxyCommand=sh"})).is_err());}}
 
 #[cfg(test)] mod docker_tests { use super::*; #[test] fn deployment_mode_is_allowlisted_and_legacy_compatible(){assert_eq!(deployment_mode(&json!({})).unwrap(),"systemd");assert_eq!(deployment_mode(&json!({"deploymentMode":"docker"})).unwrap(),"docker");assert!(deployment_mode(&json!({"deploymentMode":"docker; sh"})).is_err());}
-#[test] fn download_url_defaults_to_github_and_honors_override(){std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");assert_eq!(download_url("v1.2.3"),"https://github.com/marcusyang-meta/blocklink/releases/download/v1.2.3/blocklink-service-linux-x86_64");std::env::set_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE","http://127.0.0.1:8799/");assert_eq!(download_url("v1.2.3"),"http://127.0.0.1:8799/v1.2.3/blocklink-service-linux-x86_64");std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");} }
+#[test] fn download_url_defaults_to_github_and_honors_override(){std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");assert_eq!(download_url("v1.2.3"),"https://github.com/marcusyang-meta/blocklink/releases/download/v1.2.3/blocklink-service-linux-x86_64");std::env::set_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE","http://127.0.0.1:8799/");assert_eq!(download_url("v1.2.3"),"http://127.0.0.1:8799/v1.2.3/blocklink-service-linux-x86_64");std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");}
+#[test] fn release_client_requires_https_except_on_loopback(){assert!(release_client("https://example.com/v1/blocklink-service-linux-x86_64").is_ok());assert!(release_client("http://127.0.0.1:8799/v1/blocklink-service-linux-x86_64").is_ok());assert!(release_client("http://example.com/v1/blocklink-service-linux-x86_64").is_err());assert!(release_client("http://127.0.0.1.evil.example/v1/blocklink-service-linux-x86_64").is_err());} }
