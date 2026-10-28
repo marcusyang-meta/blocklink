@@ -234,10 +234,13 @@ setup_keyring() {
   say "starting session dbus + gnome-keyring (operator credential store)"
   export DBUS_SESSION_BUS_ADDRESS="$(dbus-daemon --session --fork --print-address)"
   [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || fail "could not start a session dbus"
-  # One daemon instance, unlocked with a throwaway password: starting the
-  # daemon twice (or with zero bytes of password input) leaves the login
-  # keyring uncreated and Secret Service writes fail with "no result found".
-  printf 'acceptance' | gnome-keyring-daemon --unlock --start --components=secrets >"$LOGS/keyring.log" 2>&1 || true
+  # --unlock and --start cannot be combined, and zero bytes of password
+  # input leave the login keyring uncreated (Secret Service writes then
+  # fail with "no result found"). Unlock with a throwaway password first,
+  # then ensure the secrets component is running.
+  printf 'acceptance' | gnome-keyring-daemon --unlock >"$LOGS/keyring.log" 2>&1 || true
+  gnome-keyring-daemon --start --components=secrets >>"$LOGS/keyring.log" 2>&1 || true
+  ls -la "$HOME/.local/share/keyrings/" >>"$LOGS/keyring.log" 2>&1 || true
   # Functional probe: prove the Secret Service actually stores secrets
   # before the operator depends on it for lobby + host credentials.
   if command -v secret-tool >/dev/null; then
