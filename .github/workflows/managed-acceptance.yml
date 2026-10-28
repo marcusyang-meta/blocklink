@@ -33,7 +33,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config openssh-server gnome-keyring dbus jq python3
+          sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config openssh-server gnome-keyring dbus libsecret-tools jq python3
       - name: Run managed-host acceptance
         env:
           ACCEPTANCE_WORK: ${{ runner.temp }}/blocklink-acceptance

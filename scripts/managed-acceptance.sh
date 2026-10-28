@@ -234,8 +234,19 @@ setup_keyring() {
   say "starting session dbus + gnome-keyring (operator credential store)"
   export DBUS_SESSION_BUS_ADDRESS="$(dbus-daemon --session --fork --print-address)"
   [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] || fail "could not start a session dbus"
-  printf '' | gnome-keyring-daemon --unlock >"$LOGS/keyring.log" 2>&1 || true
-  gnome-keyring-daemon --start --components=secrets >>"$LOGS/keyring.log" 2>&1 || true
+  # One daemon instance, unlocked with a throwaway password: starting the
+  # daemon twice (or with zero bytes of password input) leaves the login
+  # keyring uncreated and Secret Service writes fail with "no result found".
+  printf 'acceptance' | gnome-keyring-daemon --unlock --start --components=secrets >"$LOGS/keyring.log" 2>&1 || true
+  # Functional probe: prove the Secret Service actually stores secrets
+  # before the operator depends on it for lobby + host credentials.
+  if command -v secret-tool >/dev/null; then
+    printf 'probe' | secret-tool store --label='blocklink acceptance probe' service 'Blocklink Acceptance' account probe 2>>"$LOGS/keyring.log" ||
+      { cat "$LOGS/keyring.log" >&2; fail "keyring probe store failed"; }
+    secret-tool lookup service 'Blocklink Acceptance' account probe >/dev/null 2>&1 ||
+      { cat "$LOGS/keyring.log" >&2; fail "keyring probe lookup failed"; }
+    say "keyring probe ok"
+  fi
 }
 
 start_download_server() {
