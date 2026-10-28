@@ -622,7 +622,6 @@
   "远程服务器": "Remote servers",
   "添加自己的 Linux 主机，部署后在这里管理。": "Add your Linux host, deploy, and manage it here.",
   "添加主机": "Add host",
-  "当前预览支持 Ubuntu、Debian、Fedora 的 x86_64 主机和 systemd。主机需要能连接 SSH，并能向外访问 HTTPS。": "This preview supports x86_64 Ubuntu, Debian, and Fedora hosts with systemd. SSH must be reachable, with outbound HTTPS access.",
   "提交结果尚未确认。重试会使用同一任务 ID，避免重复操作。": "Submission is unconfirmed. Retry uses the same task ID to prevent duplicate operations.",
   "重试提交": "Retry submission",
   "使用启动器设置中保存的大厅地址和开房凭据注册管理身份。": "Register using the lobby address and host credential saved in launcher settings.",
@@ -674,5 +673,8 @@
   "移除模组": "Remove mod",
   "恢复为独立世界": "Restore as a separate world",
   "切换到恢复的世界": "Switch to restored world",
-  "主机数据超过当前页面容量，部分结果未显示。": "Host data exceeds the current view capacity; some results are not displayed."
+  "主机数据超过当前页面容量，部分结果未显示。": "Host data exceeds the current view capacity; some results are not displayed.",
+  "当前预览支持 x86_64 Linux：Docker 或 systemd 部署。主机需要能连接 SSH，并能向外访问 HTTPS。": "This preview supports x86_64 Linux with Docker or systemd. SSH and outbound HTTPS are required.",
+  "部署方式": "Deployment method",
+  "Docker 方式需要预先安装 Docker。数据独立持久保存，使用主机网络，不会接管现有 Crafty 存档。": "Docker must already be installed. Data is stored persistently in a separate directory. Uses host networking; existing Crafty worlds are not imported automatically."
 }

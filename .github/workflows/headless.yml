@@ -15,6 +15,22 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config
       - run: cargo test -p blocklink-service --locked
       - run: cargo build -p blocklink-service --release --locked
+      - name: Build and smoke test Docker runtime
+        run: |
+          mkdir docker-context
+          cp target/release/blocklink-service docker-context/
+          cp crates/blocklink-service/src/managed.Dockerfile docker-context/Dockerfile
+          docker build -t blocklink-managed:ci docker-context
+          docker run --rm --network none --read-only --cap-drop ALL blocklink-managed:ci --version
+          docker run -d --name blocklink-smoke --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --tmpfs /tmp --tmpfs /data:uid=10001,gid=10001 blocklink-managed:ci
+          ready=false
+          for i in $(seq 1 30); do
+            if docker exec blocklink-smoke blocklink-service --root /data --request status; then ready=true; break; fi
+            sleep 1
+          done
+          docker logs blocklink-smoke
+          docker rm -f blocklink-smoke
+          test "$ready" = true
       - name: Prepare checksummed service
         run: |
           mkdir headless
