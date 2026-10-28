@@ -19,6 +19,11 @@ fn run(s:&Session,command:&str)->Result<String>{
 }
 fn upload(s:&Session,path:&str,bytes:&[u8],mode:i32)->Result<()>{let mut c=s.scp_send(Path::new(path),mode,bytes.len() as u64,None)?;c.write_all(bytes)?;c.send_eof()?;c.wait_eof()?;c.close()?;c.wait_close()?;Ok(())}
 fn stage(e:&Engine,id:&str,message:&str,state:&str)->Result<()>{write_json(&e.ws.root().join(format!("deployment-{id}.json")),&json!({"hostId":id,"stage":message,"state":state,"updatedAt":auth::now()}))}
+const DEFAULT_DOWNLOAD_BASE:&str="https://github.com/marcusyang-meta/blocklink/releases/download";
+fn download_url(version:&str)->String{
+    let base=std::env::var("BLOCKLINK_SERVICE_DOWNLOAD_BASE").ok().map(|v|v.trim().trim_end_matches('/').to_owned()).filter(|v|!v.is_empty()).unwrap_or_else(||DEFAULT_DOWNLOAD_BASE.to_owned());
+    format!("{base}/{version}/blocklink-service-linux-x86_64")
+}
 fn deployment_mode(p:&Value)->Result<&str>{
     let mode=match p.get("deploymentMode") { None=>"systemd", Some(v)=>v.as_str().context("Deployment mode must be a string")? };
     anyhow::ensure!(["systemd","docker"].contains(&mode),"Unsupported deployment mode");
@@ -50,7 +55,7 @@ pub(super) fn deploy(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Valu
         step("Downloading and verifying the headless service")?;
         let version=p["releaseTag"].as_str().unwrap_or(concat!("v",env!("CARGO_PKG_VERSION")));
         anyhow::ensure!(version.starts_with('v')&&version.len()<=80&&version.bytes().all(|b|b.is_ascii_alphanumeric()||b".-".contains(&b)),"Invalid release tag");
-        let url=format!("https://github.com/marcusyang-meta/blocklink/releases/download/{version}/blocklink-service-linux-x86_64");
+        let url=download_url(version);
         let checksum=client()?.get(format!("{url}.sha256")).send()?.error_for_status().context("This release has no headless service artifact yet")?.text()?;
         let expected=checksum.split_whitespace().next().context("Missing checksum")?;anyhow::ensure!(expected.len()==64&&expected.bytes().all(|b|b.is_ascii_hexdigit()),"Invalid release checksum");
         let mut file=tempfile::NamedTempFile::new_in(e.ws.root())?;let mut response=client()?.get(&url).send()?.error_for_status()?;
@@ -74,4 +79,5 @@ pub(super) fn deploy(e:&Arc<Engine>,p:&Value,report:game::Reporter)->Result<Valu
 }
 #[cfg(test)] mod tests{use super::*;#[test] fn rejects_host_shell_syntax_before_network_access(){assert!(connect(&json!({"host":"x;touch /tmp/pwn"})).is_err());assert!(connect(&json!({"host":"-oProxyCommand=sh"})).is_err());}}
 
-#[cfg(test)] mod docker_tests { use super::*; #[test] fn deployment_mode_is_allowlisted_and_legacy_compatible(){assert_eq!(deployment_mode(&json!({})).unwrap(),"systemd");assert_eq!(deployment_mode(&json!({"deploymentMode":"docker"})).unwrap(),"docker");assert!(deployment_mode(&json!({"deploymentMode":"docker; sh"})).is_err());} }
+#[cfg(test)] mod docker_tests { use super::*; #[test] fn deployment_mode_is_allowlisted_and_legacy_compatible(){assert_eq!(deployment_mode(&json!({})).unwrap(),"systemd");assert_eq!(deployment_mode(&json!({"deploymentMode":"docker"})).unwrap(),"docker");assert!(deployment_mode(&json!({"deploymentMode":"docker; sh"})).is_err());}
+#[test] fn download_url_defaults_to_github_and_honors_override(){std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");assert_eq!(download_url("v1.2.3"),"https://github.com/marcusyang-meta/blocklink/releases/download/v1.2.3/blocklink-service-linux-x86_64");std::env::set_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE","http://127.0.0.1:8799/");assert_eq!(download_url("v1.2.3"),"http://127.0.0.1:8799/v1.2.3/blocklink-service-linux-x86_64");std::env::remove_var("BLOCKLINK_SERVICE_DOWNLOAD_BASE");} }
