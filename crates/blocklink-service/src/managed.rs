@@ -3,15 +3,21 @@ use super::*;
 
 fn base(value:&str)->Result<String>{
     let url=reqwest::Url::parse(value)?;
-    anyhow::ensure!(url.scheme()=="https"&&url.host_str().is_some()&&url.username().is_empty()&&url.password().is_none()&&url.path()=="/"&&url.query().is_none()&&url.fragment().is_none(),"Expected an HTTPS lobby origin");
+    // Mirror lobby::base_url: plain HTTP is acceptable only for a loopback
+    // lobby, so local acceptance can run the full managed flow end to end.
+    let local_http=url.scheme()=="http"&&matches!(url.host_str(),Some("127.0.0.1"|"localhost"|"[::1]"));
+    anyhow::ensure!((url.scheme()=="https"||local_http)&&url.host_str().is_some()&&url.username().is_empty()&&url.password().is_none()&&url.path()=="/"&&url.query().is_none()&&url.fragment().is_none(),"Expected an HTTPS lobby origin (loopback HTTP is allowed for local testing)");
     Ok(url.to_string())
 }
 fn host_id(id:&str)->Result<&str>{
     anyhow::ensure!(id.len()==32&&id.bytes().all(|b|b.is_ascii_hexdigit()&&!b.is_ascii_uppercase()),"Invalid host ID");Ok(id)
 }
 fn http(origin:&str,path:&str,token:&str,payload:Option<&Value>)->Result<Value>{
-    let client=reqwest::blocking::Client::builder().https_only(true).redirect(reqwest::redirect::Policy::none()).connect_timeout(Duration::from_secs(10)).timeout(Duration::from_secs(20)).build()?;
-    let url=format!("{}{path}",base(origin)?);
+    let base=base(origin)?;
+    // base() has already rejected non-loopback HTTP, so only a loopback
+    // lobby may use a plain-HTTP client here.
+    let client=reqwest::blocking::Client::builder().https_only(!base.starts_with("http://")).redirect(reqwest::redirect::Policy::none()).connect_timeout(Duration::from_secs(10)).timeout(Duration::from_secs(20)).build()?;
+    let url=format!("{base}{path}");
     let request=if let Some(p)=payload{client.post(url).json(p)}else{client.get(url)};
     let response=request.bearer_auth(token).send()?.error_for_status()?;
     let mut bytes=vec![];response.take(2_097_153).read_to_end(&mut bytes)?;
@@ -176,6 +182,13 @@ pub(super) fn shutdown(engine:&Engine){
         let root=tempfile::tempdir()?;let e=Arc::new(Engine::new(root.path())?);
         assert!(base("http://example.com").is_err());assert!(base("https://user@example.com").is_err());assert!(validate(&e,"settings",&mut json!({})).is_err());assert!(validate(&e,"create",&mut json!({"javaPath":"/bin/sh"})).is_err());
         let mut p=json!({"name":"server","server":false});validate(&e,"create",&mut p)?;assert_eq!(p["server"],true);Ok(())
+    }
+    #[test] fn lobby_origin_allows_https_and_loopback_http_only(){
+        assert_eq!(base("https://lobby.example.com").unwrap(),"https://lobby.example.com/");
+        assert_eq!(base("http://127.0.0.1:8787").unwrap(),"http://127.0.0.1:8787/");
+        assert_eq!(base("http://localhost:8787/").unwrap(),"http://localhost:8787/");
+        assert_eq!(base("http://[::1]:8787").unwrap(),"http://[::1]:8787/");
+        assert!(base("http://192.168.1.10:8787").is_err());assert!(base("https://lobby.example.com/path").is_err());
     }
     #[test] fn replay_does_not_create_duplicate_server_and_crash_is_uncertain()->Result<()>{
         let root=tempfile::tempdir()?;let e=Arc::new(Engine::new(root.path())?);let cmd=json!({"id":uuid::Uuid::new_v4().to_string(),"action":"create","payload":{"name":"Managed","minecraft":"1.21.1","loader":"vanilla","install":false}});

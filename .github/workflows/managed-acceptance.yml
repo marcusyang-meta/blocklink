@@ -1,0 +1,47 @@
+name: Managed host acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Acceptance phase to run'
+        type: choice
+        options: [deploy, instance, full]
+        default: instance
+  pull_request:
+    paths:
+      - 'scripts/managed-acceptance.sh'
+      - 'scripts/slp-ping.py'
+      - 'lobby/acceptance-server.mjs'
+      - '.github/workflows/managed-acceptance.yml'
+      - 'crates/blocklink-service/**'
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config openssh-server gnome-keyring dbus libsecret-tools jq python3
+      - name: Run managed-host acceptance
+        env:
+          ACCEPTANCE_WORK: ${{ runner.temp }}/blocklink-acceptance
+        run: bash scripts/managed-acceptance.sh "${{ inputs.phase || 'instance' }}"
+      - name: Upload acceptance logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: managed-acceptance-logs
+          path: ${{ runner.temp }}/blocklink-acceptance/logs
+          if-no-files-found: ignore
