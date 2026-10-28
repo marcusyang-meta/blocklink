@@ -20,8 +20,6 @@ jobs:
   acceptance:
     runs-on: ubuntu-22.04
     timeout-minutes: 90
-    env:
-      ACCEPTANCE_WORK: ${{ runner.temp }}/blocklink-acceptance
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -37,6 +35,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libssl-dev libdbus-1-dev pkg-config openssh-server gnome-keyring dbus jq python3
       - name: Run managed-host acceptance
+        env:
+          ACCEPTANCE_WORK: ${{ runner.temp }}/blocklink-acceptance
         run: bash scripts/managed-acceptance.sh "${{ inputs.phase || 'instance' }}"
       - name: Upload acceptance logs
         if: always()
